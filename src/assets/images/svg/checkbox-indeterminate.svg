@@ -1,0 +1,7 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1em' height='1em' class="custom-checkbox-indeterminate" viewBox='0 0 24 24' fill='none'>
+      <path
+        d='M3 9C3 5.68629 5.68629 3 9 3H15C18.3137 3 21 5.68629 21 9V15C21 18.3137 18.3137 21 15 21H9C5.68629 21 3 18.3137 3 15V9Z'
+        fill='currentColor'
+      />
+      <path d='M16 11.5H8V12.5H16V11.5Z' fill='white' />
+</svg>
