@@ -1,14 +1,19 @@
 <script setup>
 import { ref } from 'vue'
 
+const props = defineProps({
+  action: {
+    type: String,
+    required: true,
+  },
+  productId: {
+    type: Number,
+    required: false,
+  },
+})
+
 const optionCounter = ref(1)
 
-const content = ref(`<p>
-      This is a radically reduced version of tiptap. It has support for a document, with paragraphs and text. That's it. It's probably too much for real minimalists though.
-    </p>
-    <p>
-      The paragraph extension is not really required, but you need at least one node. Sure, that node can be something different.
-    </p>`)
 
 const activeTab = ref('Restock')
 

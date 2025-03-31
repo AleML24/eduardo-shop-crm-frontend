@@ -1,4 +1,6 @@
 import { ofetch } from 'ofetch'
+import axios from 'axios'
+
 
 export const $api = ofetch.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -11,4 +13,8 @@ export const $api = ofetch.create({
       }
     }
   },
+})
+
+export const $axios = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
 })

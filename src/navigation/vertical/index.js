@@ -11,10 +11,6 @@ export default [
     to: { name: 'products' },
   },
   {
-    title: 'Añadir Product',
-    to: { name: 'products-details' },
-  },
-  {
     title: 'Categorías',
     to: { name: 'categories' },
   },

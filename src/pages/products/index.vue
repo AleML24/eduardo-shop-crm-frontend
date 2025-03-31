@@ -1,254 +1,138 @@
 <script setup>
-const headers = [
-  {
-    title: 'Product',
-    key: 'product',
-  },
-  {
-    title: 'Category',
-    key: 'category',
-  },
-  {
-    title: 'Stock',
-    key: 'stock',
-    sortable: false,
-  },
-  {
-    title: 'SKU',
-    key: 'sku',
-  },
-  {
-    title: 'Price',
-    key: 'price',
-  },
-  {
-    title: 'QTY',
-    key: 'qty',
-  },
-  {
-    title: 'Status',
-    key: 'status',
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    sortable: false,
-  },
-]
+import { onMounted } from 'vue'
+import { $axios } from '../../utils/api'
+import { fetchFilters, fetchProducts } from './index'
 
-const selectedStatus = ref()
-const selectedCategory = ref()
-const selectedStock = ref()
-const searchQuery = ref('')
-const selectedRows = ref([])
 
-const status = ref([
-  {
-    title: 'Scheduled',
-    value: 'Scheduled',
-  },
-  {
-    title: 'Publish',
-    value: 'Published',
-  },
-  {
-    title: 'Inactive',
-    value: 'Inactive',
-  },
-])
-
-const categories = ref([
-  {
-    title: 'Accessories',
-    value: 'Accessories',
-  },
-  {
-    title: 'Home Decor',
-    value: 'Home Decor',
-  },
-  {
-    title: 'Electronics',
-    value: 'Electronics',
-  },
-  {
-    title: 'Shoes',
-    value: 'Shoes',
-  },
-  {
-    title: 'Office',
-    value: 'Office',
-  },
-  {
-    title: 'Games',
-    value: 'Games',
-  },
-])
-
-const stockStatus = ref([
-  {
-    title: 'In Stock',
-    value: true,
-  },
-  {
-    title: 'Out of Stock',
-    value: false,
-  },
-])
+//data table
+const headers = ref([
+  { title: "Código", text: "Código", value: "code" },
+  { title: "Nombre", text: "Nombre", value: "name" },
+  { title: "Descripción", text: "Descripción", value: "description" },
+  { title: "Precio", text: "Precio", value: "price" },
+  { title: "Cantidad", text: "Cantidad", value: "amount" },
+  { title: "Estado", text: "Estado", value: "state" },
+  { title: "Dimensiones", text: "Dimensiones", value: "dimension" },
+  { title: "Peso", text: "Peso", value: "weight" },
+  { title: "Capacidad", text: "Capacidad", value: "capacity" },
+  { title: "Habilidad", text: "Habilidad", value: "ability" },
+  { title: "Color", text: "Color", value: "color" },
+  { title: 'Actions', key: 'actions', sortable: false, },
+]);
+const products = ref([])
+const totalProduct = ref(0)
 
 // Data table options
-const itemsPerPage = ref(10)
-const page = ref(1)
-const sortBy = ref()
-const orderBy = ref()
-
+const pagination = ref({ page: 1, itemsPerPage: 20, sortBy: null, orderBy: null });
 const updateOptions = options => {
-  sortBy.value = options.sortBy[0]?.key
-  orderBy.value = options.sortBy[0]?.order
+  pagination.value.sortBy = options.sortBy[0]?.key
+  pagination.value.orderBy = options.sortBy[0]?.order
+  pagination.value.page = options.page
+  pagination.value.itemsPerPage = options.itemsPerPage
+  getProducts()
 }
 
-const resolveCategory = category => {
-  if (category === 'Accessories')
-    return {
-      color: 'error',
-      icon: 'ri-headphone-line',
-    }
-  if (category === 'Home Decor')
-    return {
-      color: 'info',
-      icon: 'ri-home-6-line',
-    }
-  if (category === 'Electronics')
-    return {
-      color: 'primary',
-      icon: 'ri-computer-line',
-    }
-  if (category === 'Shoes')
-    return {
-      color: 'success',
-      icon: 'ri-footprint-line',
-    }
-  if (category === 'Office')
-    return {
-      color: 'warning',
-      icon: 'ri-briefcase-line',
-    }
-  if (category === 'Games')
-    return {
-      color: 'primary',
-      icon: 'ri-gamepad-line',
-    }
+//filters
+const search = ref("");
+const categories = ref([]);
+const selectedCategory = ref(null);
+const selectedSubCategory = ref(null);
+const subCategories = ref([])
+const computedSubcategories = ref([])
+
+//functions
+const getProducts = async () => {
+  const response = await fetchProducts(
+    pagination.value.page,
+    pagination.value.itemsPerPage,
+    pagination.value.sortBy,
+    pagination.value.orderBy,
+    selectedCategory.value,
+    selectedSubCategory.value
+  )
+
+  if (!response.success) {
+    alert(response.message)
+    return
+  }
+
+  products.value = response.data
+  totalProduct.value = response.meta.total
 }
 
-const resolveStatus = statusMsg => {
-  if (statusMsg === 'Scheduled')
+const getFilters = async () => {
+  console.log('hola');
+
+  const response = await fetchFilters()
+
+  if (!response.success) {
+    alert(response.message)
+    return
+  }
+
+  categories.value = response.data.map((item) => {
     return {
-      text: 'Scheduled',
-      color: 'warning',
+      title: item.name,
+      value: item.id
     }
-  if (statusMsg === 'Published')
+  })
+  subCategories.value = response.data.map(item => {
+    const subCategorias = item.subcategories.map((sub) => {
+      return {
+        title: sub.name,
+        value: sub.id,
+      }
+    })
     return {
-      text: 'Publish',
-      color: 'success',
+      category_id: item.id,
+      subcategories: subCategorias
     }
-  if (statusMsg === 'Inactive')
-    return {
-      text: 'Inactive',
-      color: 'error',
-    }
+  })
+
+  subCategories.value.forEach(element => {
+    computedSubcategories.value.push(...element.subcategories)
+  })
+  console.log(computedSubcategories.value);
+
 }
 
-const {
-  data: productsData,
-  execute: fetchProducts,
-} = await useApi(createUrl('/apps/ecommerce/products', {
-  query: {
-    q: searchQuery,
-    stock: selectedStock,
-    category: selectedCategory,
-    status: selectedStatus,
-    page,
-    itemsPerPage,
-    sortBy,
-    orderBy,
-  },
-}))
+watch([selectedCategory, selectedSubCategory], () => {
+  getProducts();
+});
 
-const products = computed(() => productsData.value.products)
-const totalProduct = computed(() => productsData.value.total)
+watch(selectedCategory, () => {
+  computedSubcategories.value = []
+  subCategories.value.forEach(element => {
+    if (element.category_id === selectedCategory.value) {
+      computedSubcategories.value.push(...element.subcategories)
+    }
+  })
+})
 
-const deleteProduct = async id => {
-  await $api(`apps/ecommerce/products/${id}`, { method: 'DELETE' })
+onMounted(() => {
+  getProducts()
+  getFilters();
+})
 
-  // Delete from selectedRows
-  const index = selectedRows.value.findIndex(row => row === id)
-  if (index !== -1)
-    selectedRows.value.splice(index, 1)
 
-  // Refetch products
-  fetchProducts()
-}
 </script>
 
 <template>
   <div>
-    <!-- 👉 widgets -->
-    <VCard class="mb-6">
-      <VCardText class="px-2">
-        <VRow>
-          <template v-for="(data, index) in widgetData" :key="index">
-            <VCol cols="12" sm="6" md="3" class="px-6">
-              <div class="d-flex justify-space-between" :class="$vuetify.display.xs
-                ? index !== widgetData.length - 1 ? 'border-b pb-4' : ''
-                : $vuetify.display.sm
-                  ? index < (widgetData.length / 2) ? 'border-b pb-4' : ''
-                  : ''">
-                <div class="d-flex flex-column gap-y-1">
-                  <p class="text-capitalize mb-0">
-                    {{ data.title }}
-                  </p>
-
-                  <h6 class="text-h4">
-                    {{ data.value }}
-                  </h6>
-
-                  <div class="d-flex align-center">
-                    <div class="text-no-wrap me-2">
-                      {{ data.desc }}
-                    </div>
-
-                    <VChip v-if="data.change" size="small" :color="data.change > 0 ? 'success' : 'error'">
-                      {{ prefixWithPlus(data.change) }}%
-                    </VChip>
-                  </div>
-                </div>
-
-                <VAvatar variant="tonal" rounded size="44">
-                  <VIcon :icon="data.icon" size="28" color="high-emphasis" />
-                </VAvatar>
-              </div>
-            </VCol>
-            <VDivider
-              v-if="$vuetify.display.mdAndUp ? index !== widgetData.length - 1 : $vuetify.display.smAndUp ? index % 2 === 0 : false"
-              vertical inset length="100" />
-          </template>
-        </VRow>
-      </VCardText>
-    </VCard>
-
     <!-- 👉 products -->
     <VCard title="Filters">
       <VCardText>
         <VRow>
-          <!-- 👉 Select Status -->
-          <VCol cols="12" sm="4">
-            <VSelect v-model="selectedStatus" label="Select Status" placeholder="Select Status" :items="status"
-              clearable clear-icon="ri-close-line" />
-          </VCol>
-
           <!-- 👉 Select Category -->
           <VCol cols="12" sm="4">
-            <VSelect v-model="selectedCategory" label="Category" placeholder="Select Category" :items="categories"
-              clearable clear-icon="ri-close-line" />
+            <VSelect v-model="selectedCategory" label="Categoría" placeholder="Seleccionar Categoría"
+              :items="categories" clearable clear-icon="ri-close-line" />
+          </VCol>
+
+          <!-- 👉 Select SubCategory -->
+          <VCol cols="12" sm="4">
+            <VSelect v-model="selectedSubCategory" label="Subcategoría" placeholder="Seleccionar Subcategoría"
+              :items="computedSubcategories" chips clearable clear-icon="ri-close-line" />
           </VCol>
 
           <!-- 👉 Select Stock Status -->
@@ -265,7 +149,7 @@ const deleteProduct = async id => {
         <div class="d-flex align-center">
           <!-- 👉 Search  -->
           <VTextField v-model="searchQuery" placeholder="Search Product" style="inline-size: 200px;" density="compact"
-            class="me-3" />
+            class="me-3" prepend-inner-icon="ri-search-line" />
         </div>
 
         <VSpacer />
@@ -278,16 +162,15 @@ const deleteProduct = async id => {
             </VBtn>
           </div>
 
-          <VBtn color="primary" prepend-icon="ri-add-line" @click="$router.push('/apps/ecommerce/product/add')">
+          <VBtn color="primary" prepend-icon="ri-add-line" @click="$router.push('/products/add')">
             Add Product
           </VBtn>
         </div>
       </VCardText>
 
       <!-- 👉 Datatable  -->
-      <VDataTableServer v-model:items-per-page="itemsPerPage" v-model:model-value="selectedRows" v-model:page="page"
-        :headers="headers" show-select :items="products" :items-length="totalProduct" class="text-no-wrap rounded-0"
-        @update:options="updateOptions">
+      <VDataTableServer :items-per-page="pagination.itemsPerPage" :page="pagination.page" :headers="headers"
+        :items="products" :items-length="totalProduct" class="text-no-wrap rounded-0" @update:options="updateOptions">
         <!-- product  -->
         <template #item.product="{ item }">
           <div class="d-flex align-center gap-x-4">
@@ -314,7 +197,7 @@ const deleteProduct = async id => {
 
         <!-- status -->
         <template #item.status="{ item }">
-          <VChip v-bind="resolveStatus(item.status)" size="small" />
+          <VChip v-bind="resolveStatus" size="small" />
         </template>
 
         <!-- Actions -->
@@ -344,30 +227,6 @@ const deleteProduct = async id => {
           </IconBtn>
         </template>
 
-        <!-- Pagination -->
-        <template #bottom>
-          <VDivider />
-
-          <div class="d-flex justify-end flex-wrap gap-x-6 px-2 py-1">
-            <div class="d-flex align-center gap-x-2 text-medium-emphasis text-base">
-              Rows Per Page:
-              <VSelect v-model="itemsPerPage" class="per-page-select" variant="plain" :items="[10, 20, 25, 50, 100]" />
-            </div>
-
-            <p class="d-flex align-center text-base text-high-emphasis me-2 mb-0">
-              {{ paginationMeta({ page, itemsPerPage }, totalProduct) }}
-            </p>
-
-            <div class="d-flex gap-x-2 align-center me-2">
-              <VBtn class="flip-in-rtl" icon="ri-arrow-left-s-line" variant="text" density="comfortable"
-                color="high-emphasis" :disabled="page <= 1" @click="page <= 1 ? page = 1 : page--" />
-
-              <VBtn class="flip-in-rtl" icon="ri-arrow-right-s-line" density="comfortable" variant="text"
-                color="high-emphasis" :disabled="page >= Math.ceil(totalProduct / itemsPerPage)"
-                @click="page >= Math.ceil(totalProduct / itemsPerPage) ? page = Math.ceil(totalProduct / itemsPerPage) : page++" />
-            </div>
-          </div>
-        </template>
       </VDataTableServer>
     </VCard>
   </div>
