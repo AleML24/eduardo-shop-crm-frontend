@@ -1,7 +1,7 @@
   <script setup>
   import { onMounted } from 'vue'
   import { $axios } from '../../utils/api'
-  import { fetchFilters, fetchProducts } from './index'
+  import { fetchFilters, fetchProducts, updateProduct } from './index'
   import { debounce } from 'lodash';
 
 
@@ -16,7 +16,7 @@
     { title: "Dimensiones", text: "Dimensiones", value: "dimension" },
     { title: "Peso", text: "Peso", value: "weight" },
     { title: "Capacidad", text: "Capacidad", value: "capacity" },
-    { title: "Destacado", text: "Habilidad", value: "destacated" },
+    { title: "Destacado", text: "Destacado", value: "destacated" },
     { title: "Color", text: "Color", value: "color" },
     { title: 'Actions', key: 'actions', sortable: false, },
   ]);
@@ -47,6 +47,42 @@
     getProducts()
   }
 
+  const handleToggleDestacated = async (product) => {
+    if (!product) return; // Validación adicional
+
+    try {
+      const newValue = !product.destacated;
+      const currentProduct = products.value.find(p => p.id === product.id);
+
+      if (!currentProduct) {
+        throw new Error('Producto no encontrado');
+      }
+
+      // Cambio optimista
+      currentProduct.destacated = newValue;
+
+      const response = await updateProduct(product.id, {
+        destacated: newValue
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      // Actualizar con datos del servidor
+      Object.assign(currentProduct, response.data);
+
+    } catch (error) {
+      // Revertir cambio
+      const productToRevert = products.value.find(p => p.id === product.id);
+      if (productToRevert) {
+        productToRevert.destacated = !newValue;
+      }
+      alert(error.message || 'Error al actualizar');
+      console.error(error);
+    }
+  };
+
   //filters
   const search = ref("");
   const loading = ref(false);
@@ -55,7 +91,7 @@
   const selectedSubCategory = ref([]);
   const subCategories = ref([]);
   const computedSubcategories = ref([]);
-  
+
   //functions
   const getProducts = async () => {
     loading.value = true;
@@ -115,7 +151,7 @@
 
   watch(search, () => {
     console.log(search);
-    
+
     debouncedSearch()
   })
 
@@ -225,9 +261,10 @@
             <span class="text-base text-high-emphasis">{{ item.category }}</span>
           </template>
 
-          <!-- stock -->
-          <template #item.stock="{ item }">
-            <VSwitch :model-value="item.stock" />
+          <!-- destacated -->
+          <template #item.destacated="{ item }">
+            <VSwitch :model-value="item?.destacated ?? false" @update:model-value="handleToggleDestacated(item)"
+              color="primary" inset hide-details />
           </template>
 
           <!-- status -->

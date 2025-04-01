@@ -58,3 +58,24 @@
 
         }
     }
+
+    export const updateProduct = async (productId, data) => {
+        let message = null;
+        let success = null;
+        let responseData = null;
+    
+        try {
+            const request = await $axios.put(`/products/${productId}`, data);
+            
+            success = request?.data?.success;
+            responseData = request?.data?.data;
+            message = request?.data?.message;
+            
+            return { success, message, data: responseData };
+    
+        } catch (error) {
+            message = error?.response?.data?.message || error?.message || "Error al actualizar el producto";
+            success = false;
+            return { success, message, data: null };
+        }
+    };
