@@ -48,40 +48,40 @@
   }
 
   const handleToggleDestacated = async (product) => {
-    if (!product) return; // Validación adicional
-
-    try {
-      const newValue = !product.destacated;
-      const currentProduct = products.value.find(p => p.id === product.id);
-
-      if (!currentProduct) {
-        throw new Error('Producto no encontrado');
-      }
-
-      // Cambio optimista
-      currentProduct.destacated = newValue;
-
-      const response = await updateProduct(product.id, {
-        destacated: newValue
-      });
-
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-
-      // Actualizar con datos del servidor
-      Object.assign(currentProduct, response.data);
-
-    } catch (error) {
-      // Revertir cambio
-      const productToRevert = products.value.find(p => p.id === product.id);
-      if (productToRevert) {
-        productToRevert.destacated = !newValue;
-      }
-      alert(error.message || 'Error al actualizar');
-      console.error(error);
+  if (!product) return; // Validación adicional
+  
+  try {
+    const newValue = !product.destacated;
+    const currentProduct = products.value.find(p => p.id === product.id);
+    
+    if (!currentProduct) {
+      throw new Error('Producto no encontrado');
     }
-  };
+
+    // Cambio optimista
+    currentProduct.destacated = newValue;
+
+    const response = await updateProduct(product.id, {
+      destacated: newValue
+    });
+
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+
+    // Actualizar con datos del servidor
+    Object.assign(currentProduct, response.data);
+
+  } catch (error) {
+    // Revertir cambio
+    const productToRevert = products.value.find(p => p.id === product.id);
+    if (productToRevert) {
+      productToRevert.destacated = !newValue;
+    }
+    alert(error.message || 'Error al actualizar');
+    console.error(error);
+  }
+};
 
   //filters
   const search = ref("");
@@ -263,8 +263,13 @@
 
           <!-- destacated -->
           <template #item.destacated="{ item }">
-            <VSwitch :model-value="item?.destacated ?? false" @update:model-value="handleToggleDestacated(item)"
-              color="primary" inset hide-details />
+            <VSwitch
+              :model-value="item?.destacated ?? false"
+              @update:model-value="handleToggleDestacated(item)"
+              color="primary"
+              inset
+              hide-details
+            />
           </template>
 
           <!-- status -->
