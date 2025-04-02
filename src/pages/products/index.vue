@@ -3,7 +3,7 @@
   import { $axios } from '../../utils/api'
   import { fetchFilters, fetchProducts, updateProduct } from './index'
   import { debounce } from 'lodash';
-
+  import { onClickOutside } from '@vueuse/core';
 
   //data table
   const headers = ref([
@@ -20,8 +20,6 @@
     { title: "Color", text: "Color", value: "color" },
     { title: 'Actions', key: 'actions', sortable: false, },
   ]);
-
-
 
   // Debounce para la búsqueda en tiempo real (300ms de delay)
   const debouncedSearch = debounce(() => {
@@ -48,40 +46,114 @@
   }
 
   const handleToggleDestacated = async (product) => {
-  if (!product) return; // Validación adicional
-  
-  try {
-    const newValue = !product.destacated;
-    const currentProduct = products.value.find(p => p.id === product.id);
-    
-    if (!currentProduct) {
-      throw new Error('Producto no encontrado');
+    if (!product) return; // Validación adicional
+
+    try {
+      const newValue = !product.destacated;
+      const currentProduct = products.value.find(p => p.id === product.id);
+
+      if (!currentProduct) {
+        throw new Error('Producto no encontrado');
+      }
+
+      // Cambio optimista
+      currentProduct.destacated = newValue;
+
+      const response = await updateProduct(product.id, {
+        destacated: newValue
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      // Actualizar con datos del servidor
+      Object.assign(currentProduct, response.data);
+
+    } catch (error) {
+      // Revertir cambio
+      const productToRevert = products.value.find(p => p.id === product.id);
+      if (productToRevert) {
+        productToRevert.destacated = !newValue;
+      }
+      alert(error.message || 'Error al actualizar');
+      console.error(error);
     }
+  };
 
-    // Cambio optimista
-    currentProduct.destacated = newValue;
+  const pendingAmountChanges = ref({});
 
-    const response = await updateProduct(product.id, {
-      destacated: newValue
-    });
+  const handleManualAmountChange = (product, value) => {
+    const numericValue = Math.max(0, parseInt(value) || 0);
+    pendingAmountChanges.value[product.id] = numericValue;
+  };
 
-    if (!response.success) {
-      throw new Error(response.message);
+  // Función de ajuste mejorada
+  const adjustAmount = (product, delta) => {
+    const current = pendingAmountChanges.value[product.id] ?? product.amount;
+    pendingAmountChanges.value[product.id] = Math.max(0, current + delta);
+  };
+
+  // Confirmar cambio de cantidad
+  const confirmAmountChange = async (product) => {
+    try {
+      const newAmount = pendingAmountChanges.value[product.id];
+      const currentProduct = products.value.find(p => p.id === product.id);
+
+      if (!currentProduct) {
+        throw new Error('Producto no encontrado');
+      }
+
+      // Cambio optimista
+      currentProduct.amount = newAmount;
+
+      const response = await updateProduct(product.id, { amount: newAmount });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      // Actualizar con datos del servidor
+      currentProduct.amount = response.data.amount;
+      delete pendingAmountChanges.value[product.id];
+
+    } catch (error) {
+      // Revertir cambio
+      const productToRevert = products.value.find(p => p.id === product.id);
+      if (productToRevert) {
+        productToRevert.amount = product.amount;
+      }
+      console.error("Error al actualizar cantidad:", error);
     }
+  };
 
-    // Actualizar con datos del servidor
-    Object.assign(currentProduct, response.data);
+  // Cancelar cambio de cantidad
+  const cancelAmountChange = (product) => {
+    delete pendingAmountChanges.value[product.id];
+  };
 
-  } catch (error) {
-    // Revertir cambio
-    const productToRevert = products.value.find(p => p.id === product.id);
-    if (productToRevert) {
-      productToRevert.destacated = !newValue;
+  const amountControlWrapper = ref(null);
+
+  onClickOutside(amountControlWrapper, (event) => {
+    // Verifica si hay cambios pendientes en algún producto
+    for (const [id, value] of Object.entries(pendingAmountChanges.value)) {
+      const product = products.value.find(p => p.id === id);
+      if (product && value !== product.amount) {
+        confirmAmountChange(product);
+      }
     }
-    alert(error.message || 'Error al actualizar');
-    console.error(error);
-  }
-};
+  });
+
+  const handleBlur = (item) => {
+    // Usamos setTimeout para permitir que los clics en los botones se procesen primero
+    setTimeout(() => {
+      // Solo confirmamos si el valor ha cambiado y no se hizo clic en los botones
+      if (pendingAmountChanges.value[item.id] !== undefined &&
+        pendingAmountChanges.value[item.id] !== item.amount) {
+        confirmAmountChange(item);
+      }
+    }, 200);
+  };
 
   //filters
   const search = ref("");
@@ -145,6 +217,61 @@
 
   }
 
+  const handleSubcategoryChange = (value) => {
+    selectedSubCategory.value = Array.isArray(value) ? value : [value];
+  };
+
+  const decrementAmount = async (product) => {
+    try {
+      if (!product || product.amount === undefined) {
+        throw new Error("Producto no válido");
+      }
+
+      if (product.amount <= 0) return;
+
+      const newAmount = product.amount - 1;
+      product.amount = newAmount; // Cambio optimista
+
+      const response = await updateProduct(product.id, { amount: newAmount });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      // Actualizar con datos del servidor
+      product.amount = response.data.amount;
+    } catch (error) {
+      if (product) product.amount += 1; // Revertir si hay error
+      console.error("Error en decrementAmount:", error);
+    }
+  };
+
+  const incrementAmount = async (product) => {
+    try {
+      if (!product || product.amount === undefined) {
+        throw new Error("Producto no válido");
+      }
+
+      if (product.amount <= 0) return;
+
+      const newAmount = product.amount + 1;
+      product.amount = newAmount; // Cambio optimista
+
+      const response = await updateProduct(product.id, { amount: newAmount });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      // Actualizar con datos del servidor
+      product.amount = response.data.amount;
+    } catch (error) {
+      if (product) product.amount += 1; // Revertir si hay error
+      console.error("Error en decrementAmount:", error);
+    }
+  };
+
+
   watch([selectedCategory, selectedSubCategory], () => {
     getProducts();
   });
@@ -154,10 +281,6 @@
 
     debouncedSearch()
   })
-
-  const handleSubcategoryChange = (value) => {
-    selectedSubCategory.value = Array.isArray(value) ? value : [value];
-  };
 
   // Watcher para actualizar subcategorías cuando cambia la categoría
   watch(selectedCategory, () => {
@@ -241,7 +364,13 @@
 
         <!-- 👉 Datatable  -->
         <VDataTableServer :items-per-page="pagination.itemsPerPage" :page="pagination.page" :headers="headers"
-          :items="products" :items-length="totalProduct" class="text-no-wrap rounded-0" @update:options="updateOptions">
+          :loading="loading" loading-text="Cargando..." :items="products" :items-length="totalProduct"
+          class="text-no-wrap rounded-0" @update:options="updateOptions">
+
+          <template v-slot:loading>
+            <v-skeleton-loader type="table-row@10"></v-skeleton-loader>
+          </template>
+
           <!-- product  -->
           <template #item.product="{ item }">
             <div class="d-flex align-center gap-x-4">
@@ -250,6 +379,43 @@
                 <span class="text-base text-high-emphasis font-weight-medium">{{ item.productName }}</span>
                 <span class="text-sm">{{ item.productBrand }}</span>
               </div>
+            </div>
+          </template>
+
+          <!-- amount -->
+          <template #item.amount="{ item }">
+            <div class="d-flex align-center gap-2" ref="amountControlWrapper">
+              <!-- Botón decremento -->
+              <VBtn icon size="x-small" density="compact" color="white"
+                :disabled="(pendingAmountChanges[item.id] ?? item.amount) <= 0" @click="adjustAmount(item, -1)">
+                <h2>-</h2>
+              </VBtn>
+
+              <!-- Campo de cantidad con contenedor -->
+              <div @click.stop>
+                <VTextField :model-value="pendingAmountChanges[item.id] ?? item.amount" type="number" density="compact"
+                  width="150px" hide-details @update:model-value="(value) => handleManualAmountChange(item, value)"
+                  @blur="handleBlur(item)" ref="amountInput">
+
+                  <!-- Botones de confirmación -->
+                  <div v-if="pendingAmountChanges[item.id] !== undefined">
+                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small" @click="confirmAmountChange(item)">
+                      <h6>✔</h6>
+                    </VBtn>
+                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small" @click="cancelAmountChange(item)">
+                      <h6>✖</h6>
+                    </VBtn>
+                  </div>
+
+                </VTextField>
+
+
+              </div>
+
+              <!-- Botón incremento -->
+              <VBtn icon size="x-small" density="compact" color="white" @click="adjustAmount(item, +1)">
+                <h2>+</h2>
+              </VBtn>
             </div>
           </template>
 
@@ -263,13 +429,8 @@
 
           <!-- destacated -->
           <template #item.destacated="{ item }">
-            <VSwitch
-              :model-value="item?.destacated ?? false"
-              @update:model-value="handleToggleDestacated(item)"
-              color="primary"
-              inset
-              hide-details
-            />
+            <VSwitch :model-value="item?.destacated ?? false" @update:model-value="handleToggleDestacated(item)"
+              color="primary" inset hide-details />
           </template>
 
           <!-- status -->
