@@ -4,6 +4,8 @@
   import { fetchFilters, fetchProducts, updateProduct } from './index'
   import { debounce } from 'lodash';
   import { onClickOutside } from '@vueuse/core';
+  import { useRouter } from 'vue-router';
+
 
   //data table
   const headers = ref([
@@ -17,6 +19,7 @@
     { title: "Peso", text: "Peso", value: "weight" },
     { title: "Capacidad", text: "Capacidad", value: "capacity" },
     { title: "Destacado", text: "Destacado", value: "destacated" },
+    { title: "Visible", text: "Visible", value: "visible" },
     { title: "Color", text: "Color", value: "color" },
     { title: 'Actions', key: 'actions', sortable: false, },
   ]);
@@ -75,6 +78,42 @@
       const productToRevert = products.value.find(p => p.id === product.id);
       if (productToRevert) {
         productToRevert.destacated = !newValue;
+      }
+      alert(error.message || 'Error al actualizar');
+      console.error(error);
+    }
+  };
+
+  const handleToggleVisible = async (product) => {
+    if (!product) return; // Validación adicional
+
+    try {
+      const newValue = !product.visible;
+      const currentProduct = products.value.find(p => p.id === product.id);
+
+      if (!currentProduct) {
+        throw new Error('Producto no encontrado');
+      }
+
+      // Cambio optimista
+      currentProduct.visible = newValue;
+
+      const response = await updateProduct(product.id, {
+        visible: newValue
+      });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      // Actualizar con datos del servidor
+      Object.assign(currentProduct, response.data);
+
+    } catch (error) {
+      // Revertir cambio
+      const productToRevert = products.value.find(p => p.id === product.id);
+      if (productToRevert) {
+        productToRevert.visible = !newValue;
       }
       alert(error.message || 'Error al actualizar');
       console.error(error);
@@ -163,6 +202,8 @@
   const selectedSubCategory = ref([]);
   const subCategories = ref([]);
   const computedSubcategories = ref([]);
+  const selectedDestacated = ref(null);
+  const selectedVisible = ref(null);
 
   //functions
   const getProducts = async () => {
@@ -174,7 +215,9 @@
       pagination.value.orderBy,
       selectedCategory.value,
       selectedSubCategory.value,
-      search.value
+      search.value,
+      selectedDestacated.value,
+      selectedVisible.value
     )
 
     if (!response.success) {
@@ -271,6 +314,12 @@
     }
   };
 
+  const router = useRouter();
+
+  // Función específica para navegar a detalles
+  const goToProductDetails = (productId) => {
+    router.push(`/products/details/${productId}`);
+  };
 
   watch([selectedCategory, selectedSubCategory], () => {
     getProducts();
@@ -317,22 +366,42 @@
         <VCardText>
           <VRow>
             <!-- 👉 Select Category -->
-            <VCol cols="12" sm="4">
+            <VCol cols="12" sm="6">
               <VSelect v-model="selectedCategory" label="Categoría" placeholder="Seleccionar Categoría"
                 :items="categories" clearable clear-icon="ri-close-line" />
             </VCol>
 
             <!-- 👉 Select SubCategory -->
-            <VCol cols="12" sm="4">
+            <VCol cols="12" sm="6">
               <VSelect v-model="selectedSubCategory" label="Subcategoría" placeholder="Seleccionar Subcategoría"
                 :items="computedSubcategories" @change="handleSubcategoryChange" chips clearable multiple
                 clear-icon="ri-close-line" />
             </VCol>
 
-            <!-- 👉 Select Stock Status -->
-            <VCol cols="12" sm="4">
-              <VSelect v-model="selectedStock" label="Stock" placeholder="Stock" :items="stockStatus" clearable
-                clear-icon="ri-close-line" />
+
+          </VRow>
+          <VRow>
+            <!-- 👉 Select Destacado -->
+            <VCol cols="12" sm="6">
+              <v-card variant="flat">
+                <v-radio-group v-model="selectedDestacated" inline @change="getProducts">
+                  <h3 class="font-weight-thin pa-2">Destacados</h3>
+                  <v-radio label="Si" :value="1"></v-radio>
+                  <v-radio label="No" :value="0"></v-radio>
+                  <v-radio label="Todos" :value="null"></v-radio>
+                </v-radio-group>
+              </v-card>
+            </VCol>
+            <!-- 👉 Select Visible -->
+            <VCol cols="12" sm="6">
+              <v-card variant="flat">
+                <v-radio-group v-model="selectedVisible" inline @change="getProducts">
+                  <h3 class="font-weight-thin pa-2">Visibles</h3>
+                  <v-radio label="Si" :value="1"></v-radio>
+                  <v-radio label="No" :value="0"></v-radio>
+                  <v-radio label="Todos" :value="null"></v-radio>
+                </v-radio-group>
+              </v-card>
             </VCol>
           </VRow>
         </VCardText>
@@ -340,26 +409,22 @@
         <VDivider />
 
         <VCardText class="d-flex flex-wrap gap-4">
-          <div class="d-flex align-center">
-            <!-- 👉 Search  -->
-            <VTextField v-model="search" @input="onSearchInput" placeholder="Buscar productos" density="compact"
-              prepend-inner-icon="ri-search-line" clearable style="inline-size: 300px;" />
-          </div>
-
-          <VSpacer />
-
-          <div class="d-flex gap-x-4">
-            <!-- 👉 Export button -->
-            <div>
-              <VBtn variant="outlined" color="secondary" prepend-icon="ri-external-link-line">
+          <VRow>
+            <VCol cols="12" sm="6">
+              <!-- 👉 Search  -->
+              <VTextField v-model="search" @input="onSearchInput" placeholder="Buscar productos" density="compact"
+                prepend-inner-icon="ri-search-line" clearable style="inline-size: 350px;" />
+            </VCol>
+            <VCol class="d-flex justify-end" cols="12" sm="6">
+              <!-- 👉 Export button -->
+              <VBtn class="me-5" variant="outlined" color="secondary" prepend-icon="ri-external-link-line">
                 Export
               </VBtn>
-            </div>
-
-            <VBtn color="primary" prepend-icon="ri-add-line" @click="$router.push('/products/add')">
-              Add Product
-            </VBtn>
-          </div>
+              <VBtn color="primary" prepend-icon="ri-add-line" @click="$router.push('/products/add')">
+                Add Product
+              </VBtn>
+            </VCol>
+          </VRow>
         </VCardText>
 
         <!-- 👉 Datatable  -->
@@ -399,23 +464,28 @@
 
                   <!-- Botones de confirmación -->
                   <div v-if="pendingAmountChanges[item.id] !== undefined">
-                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small" @click="confirmAmountChange(item)">
+                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small"
+                      @click="confirmAmountChange(item)">
                       <h6>✔</h6>
                     </VBtn>
-                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small" @click="cancelAmountChange(item)">
+                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small"
+                      @click="cancelAmountChange(item)">
                       <h6>✖</h6>
                     </VBtn>
                   </div>
-
                 </VTextField>
-
-
               </div>
 
               <!-- Botón incremento -->
               <VBtn icon size="x-small" density="compact" color="white" @click="adjustAmount(item, +1)">
                 <h2>+</h2>
               </VBtn>
+            </div>
+          </template>
+
+          <template #item.description="{ item }">
+            <div class="text-wrap" style="min-width: 500px; max-width: 800px;">
+              {{ item.description }}
             </div>
           </template>
 
@@ -433,20 +503,29 @@
               color="primary" inset hide-details />
           </template>
 
-          <!-- status -->
-          <template #item.status="{ item }">
-            <VChip v-bind="resolveStatus" size="small" />
+          <!-- visible -->
+          <template #item.visible="{ item }">
+            <VSwitch :model-value="item?.visible ?? false" @update:model-value="handleToggleVisible(item)"
+              color="primary" inset hide-details />
+          </template>
+
+          <template #item.color="{ item }">
+
+            <VChip class="mx-1" v-for="(color) in item.color" size="x-small">
+              {{ color }}
+            </VChip>
+
           </template>
 
           <!-- Actions -->
           <template #item.actions="{ item }">
-            <IconBtn size="small">
-              <VIcon icon="ri-edit-box-line" />
+            <IconBtn size="small" color="warning" @click="() => goToProductDetails(item.id)">
+              👁‍🗨
             </IconBtn>
 
             <IconBtn size="small">
-              <VIcon icon="ri-more-2-fill" />
-
+              <!-- <VIcon icon="ri-more-2-fill" /> -->
+              ⁝
               <VMenu activator="parent">
                 <VList>
                   <VListItem value="download" prepend-icon="ri-download-line">

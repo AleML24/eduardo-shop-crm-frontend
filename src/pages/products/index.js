@@ -1,4 +1,4 @@
-    export const fetchProducts = async (page, itemsPerPage, sortBy, orderBy, selectedCategory, selectedSubCategory, searchTerm) => {
+    export const fetchProducts = async (page, itemsPerPage, sortBy, orderBy, selectedCategory, selectedSubCategory, searchTerm, selectedDestacated, selectedVisible) => {
         let message = null;
         let success = null;
         let data = null;
@@ -13,7 +13,9 @@
                     orderBy,
                     selectedCategory,
                     selectedSubCategory,
-                    searchTerm
+                    searchTerm,
+                    selectedDestacated,
+                    selectedVisible
                 }
             })
             console.log("productos cargados",request);
