@@ -5,7 +5,7 @@ import {
   useFileDialog,
 } from '@vueuse/core'
 
-import { useImageStore } from '@/stores/useImageStore'
+// import { useImageStore } from '@/stores/useImageStore'
 import { useAxios } from '@/composables/useAxios' // o usa directamente axios si no tienes composable
 import { giveMeASnack } from '@/composables/useSnackbar' // reemplaza por tu snack/toast real
 
