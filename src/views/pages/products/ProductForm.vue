@@ -11,6 +11,8 @@ import {
 import { PRODUCT_ACTIONS } from '@/constants/products';
 import { useRouter } from 'vue-router';
 const router = useRouter();
+import { useImageStore } from '@/stores/useImageStore'
+const imageStore = useImageStore()
 
 // Definición de props del componente
 const props = defineProps({
@@ -279,7 +281,13 @@ const handleSubmit = async () => {
       amount: parseInt(formData.value.amount),
       weight: parseFloat(formData.value.weight || 0),
       visible: visible.value,
-      destacated: destacated.value
+      destacated: destacated.value,
+      images: imageStore.images.map(img => ({
+        url: img.url,
+        path: img.path,
+        name: img.file?.name,
+        size: img.file?.size
+      }))
     };
 
     let response;
@@ -297,6 +305,7 @@ const handleSubmit = async () => {
       if (response.success) {
         successMessage.value = response.message || 'Producto creado exitosamente';
         resetForm();
+        imageStore.clearImages()
       }
     }
 
