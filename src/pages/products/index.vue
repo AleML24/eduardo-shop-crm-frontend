@@ -421,7 +421,7 @@
                 Export
               </VBtn>
               <VBtn color="primary" prepend-icon="ri-add-line" @click="$router.push('/products/add')">
-                Add Product
+                Agregar Producto
               </VBtn>
             </VCol>
           </VRow>

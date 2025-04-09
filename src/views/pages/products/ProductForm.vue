@@ -262,7 +262,7 @@ const handleSubmit = async () => {
     if (!formData.value.name) validationErrors.push('Nombre es requerido');
     if (!formData.value.price) validationErrors.push('Precio es requerido');
     if (!formData.value.amount) validationErrors.push('Cantidad es requerida');
-    if (!formData.value.description) validationErrors.push('Descripción es requerida');
+    // if (!formData.value.description) validationErrors.push('Descripción es requerida');
 
     const validColors = formData.value.color.filter(c => c.trim() !== '');
     if (validColors.length === 0) validationErrors.push('Al menos un color es requerido');
@@ -321,7 +321,7 @@ const handleSubmit = async () => {
       </div>
 
       <div class="d-flex gap-4 align-center flex-wrap">
-        <VBtn variant="outlined" color="secondary">Descartar</VBtn>
+        <VBtn variant="outlined" color="secondary" @click="$router.push('/products')">Descartar</VBtn>
         <VBtn @click="handleMainButtonClick" :loading="isLoading" :disabled="isLoading">
           {{ btnTitle }}
         </VBtn>
@@ -378,7 +378,7 @@ const handleSubmit = async () => {
               </VCol>
 
               <VCol cols="12" md="6">
-                <VTextField v-model="formData.weight" label="Peso (gr)" type="number" :readonly="!canWrite"
+                <VTextField v-model="formData.weight" label="Peso (lb)" type="number" :readonly="!canWrite"
                   step="0.01" />
               </VCol>
 
@@ -415,8 +415,7 @@ const handleSubmit = async () => {
               <VCol cols="12">
                 <VLabel>Descripción (Opcional)</VLabel>
                 <v-textarea :readonly="!canWrite" label="Label" v-model="formData.description" variant="outlined"
-                  placeholder="Descripción detallada del producto..." class="mt-1 rounded"
-                  :rules="[v => !!v || 'Descripción es requerida']" auto-grow></v-textarea>
+                  placeholder="Descripción detallada del producto..." class="mt-1 rounded" auto-grow></v-textarea>
 
               </VCol>
             </VRow>
