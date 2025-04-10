@@ -11,8 +11,8 @@ import {
 import { PRODUCT_ACTIONS } from '@/constants/products';
 import { useRouter } from 'vue-router';
 const router = useRouter();
-// import { useImageStore } from '@/stores/useImageStore'
-// const imageStore = useImageStore()
+import { useImageStore } from '@/stores/useImageStore'
+const imageStore = useImageStore()
 
 // Definición de props del componente
 const props = defineProps({
@@ -282,12 +282,12 @@ const handleSubmit = async () => {
       weight: parseFloat(formData.value.weight || 0),
       visible: visible.value,
       destacated: destacated.value,
-      // images: imageStore.images.map(img => ({
-      //   url: img.url,
-      //   path: img.path,
-      //   name: img.file?.name,
-      //   size: img.file?.size
-      // }))
+      images: imageStore.images.map(img => ({
+        url: img.url,
+        path: img.path,
+        name: img.file?.name,
+        size: img.file?.size
+      }))
     };
 
     let response;
@@ -305,7 +305,7 @@ const handleSubmit = async () => {
       if (response.success) {
         successMessage.value = response.message || 'Producto creado exitosamente';
         resetForm();
-        // imageStore.clearImages()
+        imageStore.clearImages()
       }
     }
 
@@ -435,7 +435,7 @@ const handleSubmit = async () => {
         <!-- 👉 Imágenes del Producto -->
         <VCard class="mb-6" title="Imágenes del Producto">
           <VCardText>
-            <!-- <DropZone /> -->
+            <DropZone />
           </VCardText>
         </VCard>
       </VCol>
