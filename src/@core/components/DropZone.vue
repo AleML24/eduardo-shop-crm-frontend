@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { readonly, ref } from 'vue'
 import {
   useDropZone,
   useFileDialog,
@@ -7,6 +7,13 @@ import {
 
 import { useImageStore } from '@/@core/stores/images'
 import { $axios } from '@/utils/api.js'
+
+const props = defineProps({
+  readonly: {
+    type: Boolean,
+    required: true
+  }
+})
 
 const dropZoneRef = ref()
 const isLoading = ref(false)
@@ -102,9 +109,10 @@ useDropZone(dropZoneRef, onDrop)
       <VProgressLinear v-if="isLoading" indeterminate color="primary" />
 
       <div v-else class="w-full h-auto relative">
-        <div ref="dropZoneRef" class="cursor-pointer" @click="() => imageStore.images.length < 10 && open()">
+        <div ref="dropZoneRef" class="cursor-pointer" @click="() => imageStore.images.length < 10 && !props.readonly && open()">
           <!-- Vista vacía -->
-          <div v-if="imageStore.images.length === 0"
+          <div v-if="props.readonly" class="w-100 d-flex justify-center text-subtitle-1">No existen imagenes del producto</div>
+          <div v-if="imageStore.images.length === 0 && !props.readonly"
             class="d-flex flex-column justify-center align-center gap-y-2 pa-12 border-dashed drop-zone">
             <VAvatar variant="tonal" color="secondary" rounded>
               <VIcon icon="ri-upload-2-line" />
@@ -114,7 +122,7 @@ useDropZone(dropZoneRef, onDrop)
             </h4>
             <span class="text-disabled">O</span>
 
-            <VBtn variant="outlined">
+            <VBtn variant="outlined" v-if="!props.readonly">
               Busque sus imágenes
             </VBtn>
           </div>
@@ -137,7 +145,7 @@ useDropZone(dropZoneRef, onDrop)
                       </div>
                     </VCardText>
                     <VCardActions>
-                      <VBtn variant="text" block @click.stop="imageStore.removeImage(index)">
+                      <VBtn variant="text" v-if="!props.readonly" block @click.stop="imageStore.removeImage(index)">
                         Eliminar Fichero
                       </VBtn>
                     </VCardActions>

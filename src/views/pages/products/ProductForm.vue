@@ -435,7 +435,7 @@ const handleSubmit = async () => {
         <!-- 👉 Imágenes del Producto -->
         <VCard class="mb-6" title="Imágenes del Producto">
           <VCardText>
-            <DropZone />
+            <DropZone :readonly="props.action == 'SHOW' ? true : false" />
           </VCardText>
         </VCard>
       </VCol>
