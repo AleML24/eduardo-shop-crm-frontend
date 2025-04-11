@@ -5,7 +5,7 @@
   import { debounce } from 'lodash';
   import { onClickOutside } from '@vueuse/core';
   import { useRouter } from 'vue-router';
-import { useImageStore } from '@/@core/stores/images';
+  import { useImageStore } from '@/@core/stores/images';
 
 
   //data table
@@ -538,19 +538,8 @@ import { useImageStore } from '@/@core/stores/images';
 
           <!-- Actions -->
           <template #item.actions="{ item }">
-            <v-btn icon="ri-eye-line" @click="() => goToProductDetails(item.id)"></v-btn>
-
-            <IconBtn size="small">
-              <!-- <VIcon icon="ri-more-2-fill" /> -->
-              ⁝
-              <VMenu activator="parent">
-                <VList>
-                
-
-                  <v-btn variant="text" icon="ri-edit-box-line" ></v-btn>
-                </VList>
-              </VMenu>
-            </IconBtn>
+            <v-btn variant="text" icon="ri-eye-line" @click="() => goToProductDetails(item.id)"></v-btn>
+            <v-btn variant="text" @click="router.push(`/products/edit/${item.id}`)" icon="ri-edit-box-line"></v-btn>
           </template>
 
         </VDataTableServer>
