@@ -18,7 +18,6 @@
                     selectedVisible
                 }
             })
-            console.log("productos cargados",request);
 
             success = request?.data?.success;
             data = request?.data?.data
@@ -44,7 +43,6 @@
 
         try {
             const request = await $axios.get(`/categories/get-names`,)
-            console.log(request);
             
             success = request?.data?.success;
             data = request?.data?.data

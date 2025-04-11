@@ -5,6 +5,7 @@
   import { debounce } from 'lodash';
   import { onClickOutside } from '@vueuse/core';
   import { useRouter } from 'vue-router';
+import { useImageStore } from '@/@core/stores/images';
 
 
   //data table
@@ -200,23 +201,6 @@
 
   const dialogConfirmDeleteProduct = false
 
-  // Eliminar producto
-  const handleDeleteProduct = async (productId) => {
-    try {
-      const response = await deleteProduct(productId)
-      if (response.success) {
-        successMessage.value = response.message || 'Producto eliminado correctamente'
-        await getProducts()
-        // dialogConfirmDeleteSubcategory.value = false
-      } else {
-        errorMessage.value = response.message || 'Error al eliminar producto'
-      }
-    } catch (error) {
-      errorMessage.value = 'Error inesperado al eliminar producto'
-      console.error("Error completo:", error)
-    }
-  }
-
   //filters
   const search = ref("");
   const loading = ref(false);
@@ -261,14 +245,10 @@
       return
     }
 
-    console.log('reqeust', response.data);
-
-
     categories.value = response.data.map((item) => ({
       title: item.name,
       value: item.id
     }));
-    console.log('cat', categories.value);
 
     subCategories.value = response.data.map(item => ({
       category_id: item.id,
@@ -279,7 +259,6 @@
     }));
 
     computedSubcategories.value = subCategories.value;
-    console.log("Computed", computedSubcategories.value);
 
   }
 
@@ -349,8 +328,6 @@
   });
 
   watch(search, () => {
-    console.log(search);
-
     debouncedSearch()
   })
 
@@ -376,6 +353,7 @@
   onMounted(() => {
     getProducts()
     getFilters();
+    useImageStore().clearImages()
   })
 
   watch([selectedDestacated, selectedVisible], () => {
@@ -560,33 +538,16 @@
 
           <!-- Actions -->
           <template #item.actions="{ item }">
-            <IconBtn size="small" color="warning" @click="() => goToProductDetails(item.id)">
-              👁‍🗨
-            </IconBtn>
+            <v-btn icon="ri-eye-line" @click="() => goToProductDetails(item.id)"></v-btn>
 
             <IconBtn size="small">
               <!-- <VIcon icon="ri-more-2-fill" /> -->
               ⁝
               <VMenu activator="parent">
                 <VList>
-                  <VListItem value="download" prepend-icon="ri-download-line">
-                    Download
-                  </VListItem>
+                
 
-                  <v-btn variant="text" block color="error" @click="handleDeleteProduct(item.id)">Eliminar</v-btn>
-
-                  
-
-
-
-
-
-
-
-
-                  <VListItem value="duplicate" prepend-icon="ri-stack-line">
-                    Duplicate
-                  </VListItem>
+                  <v-btn variant="text" icon="ri-edit-box-line" ></v-btn>
                 </VList>
               </VMenu>
             </IconBtn>

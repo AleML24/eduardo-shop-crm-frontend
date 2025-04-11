@@ -39,7 +39,7 @@ const formData = ref({
   dimension: '',
   weight: 0,
   capacity: '',
-  color: [''],
+  color: [],
   category_id: null,
   subcategory_id: null
 });
@@ -85,7 +85,6 @@ const loadCategories = async () => {
     const catResponse = await fetchCategories();
     if (catResponse.success) {
       categories.value = catResponse.data;
-      console.log("Categorías cargadas:", categories.value);
     } else {
       errorMessage.value = catResponse.message || "Error al cargar categorías";
     }
@@ -117,7 +116,6 @@ const loadProductById = async () => {
       visible.value = Boolean(productResponse.data.visible);
       destacated.value = Boolean(productResponse.data.destacated);
 
-      console.log(visible.value, destacated.value);
 
       // Cargar subcategorías para la categoría del producto
       if (productResponse.data.category_id) {
@@ -177,10 +175,13 @@ const handleMainButtonClick = async () => {
   if (btnTitle.value === 'Editar') {
     // Navegar a la página de edición
     router.push(`/products/edit/${props.productId}`);
-  } else if (btnTitle.value === 'Actualizar') {
+  } else if (btnTitle.value !== 'Editar') {
     // Ejecutar el submit normal
-    await handleSubmit();
-    router.push(`/products/details/${props.productId}`);
+    const success = await handleSubmit();
+    if (success) {
+      imageStore.clearImages()
+      router.push(`/products/details/${props.productId}`);
+    }
   }
 };
 
@@ -304,7 +305,6 @@ const handleSubmit = async () => {
       if (response.success) {
         successMessage.value = response.message || 'Producto creado exitosamente';
         resetForm();
-        imageStore.clearImages()
       }
     }
 
@@ -316,6 +316,7 @@ const handleSubmit = async () => {
     console.error(error);
   } finally {
     isLoading.value = false;
+    return !errorMessage.value
   }
 };
 
@@ -331,19 +332,38 @@ const addNewColor = () => {
     toggleAddColorDialog();
   }
 }
+// Eliminar producto
+const handleDeleteProduct = async (productId) => {
+  try {
+    const response = await deleteProduct(productId)
+    if (response.success) {
+      successMessage.value = response.message || 'Producto eliminado correctamente'
+      await getProducts()
+      // dialogConfirmDeleteSubcategory.value = false
+    } else {
+      errorMessage.value = response.message || 'Error al eliminar producto'
+    }
+  } catch (error) {
+    errorMessage.value = 'Error inesperado al eliminar producto'
+    console.error("Error completo:", error)
+  }
+}
 </script>
 
 <template>
   <div>
-    <div class="d-flex flex-wrap justify-center justify-md-space-between gap-4 mb-6">
-      <div class="d-flex flex-column justify-center">
+    <div class="d-flex justify-md-space-between mb-6">
+      <div class="d-flex justify-center">
         <h4 class="text-h4"> {{ title }} </h4>
       </div>
 
-      <div class="d-flex gap-4 align-center flex-wrap">
+      <div class="d-flex gap-2 align-center justify-center">
         <VBtn v-if="props.action != 'SHOW'" variant="outlined" @click="router.go(-1)" color="secondary">Cancelar</VBtn>
-        <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.go(-1)" color="secondary">Atrás
+        <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.push('/products')"
+          color="secondary">Atrás
         </VBtn>
+        <v-btn v-if="props.action == 'EDIT'" color="error" prepend-icon="ri-delete-bin-line"
+          @click="handleDeleteProduct(item.id)">Eliminar</v-btn>
         <VBtn @click="handleMainButtonClick" prepend-icon="ri-pencil-line" :loading="isLoading" :disabled="isLoading">
           {{ btnTitle }}
         </VBtn>
@@ -372,6 +392,13 @@ const addNewColor = () => {
               <VCol cols="12" md="6">
                 <VTextField v-model="formData.name" label="Nombre*" placeholder="Ej: iPhone 13"
                   :rules="[v => !!v || 'Nombre es requerido']" :readonly="!canWrite" />
+              </VCol>
+
+              <VCol cols="12">
+                <v-textarea :readonly="!canWrite" label="Descripción" v-model="formData.description" variant="outlined"
+                  placeholder="Descripción detallada del producto..." class="mt-1 rounded"
+                  :rules="[v => !!v || 'Descripción es requerida']" auto-grow></v-textarea>
+
               </VCol>
 
               <VCol cols="12" md="6">
@@ -446,13 +473,6 @@ const addNewColor = () => {
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-              </VCol>
-
-              <VCol cols="12">
-                <v-textarea :readonly="!canWrite" label="Descripción" v-model="formData.description" variant="outlined"
-                  placeholder="Descripción detallada del producto..." class="mt-1 rounded"
-                  :rules="[v => !!v || 'Descripción es requerida']" auto-grow></v-textarea>
-
               </VCol>
             </VRow>
           </VCardText>

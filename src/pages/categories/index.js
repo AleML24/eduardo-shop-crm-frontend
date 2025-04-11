@@ -6,8 +6,6 @@ export const fetchCategories = async () => {
 
     try {
         const request = await $axios.get(`/categories/get-names`)
-        console.log("Categorias cargadas desde index.js",request);
-
         success = request?.data?.success;
         data = request?.data?.data
         message = request?.data?.message;
