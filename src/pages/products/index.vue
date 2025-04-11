@@ -437,12 +437,11 @@
           </template>
 
           <!-- product  -->
-          <template #item.product="{ item }">
+          <template #item.name="{ item }">
             <div class="d-flex align-center gap-x-4">
-              <VAvatar v-if="item.image" size="38" variant="tonal" rounded :image="item.image" />
+              <VAvatar v-if="item.image_url" size="38" variant="tonal" rounded :image="item.image_url" />
               <div class="d-flex flex-column">
-                <span class="text-base text-high-emphasis font-weight-medium">{{ item.productName }}</span>
-                <span class="text-sm">{{ item.productBrand }}</span>
+                <span class="text-base text-high-emphasis font-weight-medium">{{ item.name }}</span>
               </div>
             </div>
           </template>

@@ -12,7 +12,7 @@ const props = defineProps({
   readonly: {
     type: Boolean,
     required: true
-  }
+  },
 })
 
 const dropZoneRef = ref()
@@ -109,9 +109,9 @@ useDropZone(dropZoneRef, onDrop)
       <VProgressLinear v-if="isLoading" indeterminate color="primary" />
 
       <div v-else class="w-full h-auto relative">
-        <div ref="dropZoneRef" class="cursor-pointer" @click="() => imageStore.images.length < 10 && !props.readonly && open()">
+        <div ref="dropZoneRef" :class="{ 'cursor-pointer': !props.readonly }"
+          @click="() => imageStore.images.length < 10 && !props.readonly && open()">
           <!-- Vista vacía -->
-          <div v-if="props.readonly" class="w-100 d-flex justify-center text-subtitle-1">No existen imagenes del producto</div>
           <div v-if="imageStore.images.length === 0 && !props.readonly"
             class="d-flex flex-column justify-center align-center gap-y-2 pa-12 border-dashed drop-zone">
             <VAvatar variant="tonal" color="secondary" rounded>
@@ -126,9 +126,21 @@ useDropZone(dropZoneRef, onDrop)
               Busque sus imágenes
             </VBtn>
           </div>
+          <div v-else-if="imageStore.images.length === 0 && props.readonly"
+            class="w-100 d-flex justify-center text-subtitle-1">No existen imagenes del
+            producto</div>
+
 
           <!-- Vista con imágenes cargadas -->
           <div v-else class="d-flex justify-center align-center gap-3 pa-8 border-dashed drop-zone flex-wrap">
+            <VRow class="align-center mb-4" style="position: absolute; right: 1rem; top: 1rem;" v-if="!props.readonly && imageStore.images.length > 0">
+              <VCol cols="12" class="d-flex justify-end">
+                <VBtn size="large" color="primary" icon="ri-upload-2-line" variant="tonal"
+                  @click="() => imageStore.images.length < 10 && open()">
+                </VBtn>
+              </VCol>
+            </VRow>
+
             <VRow class="match-height w-100">
               <template v-for="(item, index) in imageStore.images" :key="index">
                 <VCol cols="12" sm="4">

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import {$axios} from '@/utils/api.js'
+import { $axios } from '@/utils/api.js'
 
 export const useImageStore = defineStore('imageStore', {
     state: () => ({
@@ -25,7 +25,7 @@ export const useImageStore = defineStore('imageStore', {
             this.images.splice(index, 1)
 
         },
-          
+
 
         addImages(newImages) {
             if (this.images.length + newImages.length > 10) {
@@ -39,7 +39,15 @@ export const useImageStore = defineStore('imageStore', {
         },
 
         setImages(images) {
-            this.images = images
+            this.images = images.map(img => ({
+                url: img.url,
+                path: img.path,
+                file: {
+                    name: img.file_name,
+                    size: parseInt(img.file_size),
+                },
+            }))
         }
+
     }
 })

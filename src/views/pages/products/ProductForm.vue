@@ -103,13 +103,14 @@ const loadProductById = async () => {
     errorMessage.value = null;
 
     const productResponse = await fetchProductById(props.productId);
-
     if (productResponse.success) {
       // Asignar todos los datos del producto al formulario
       formData.value = {
         ...productResponse.data,
-        color: productResponse.data.color || ['']
+        color: productResponse.data.color || [''],
       };
+
+      imageStore.setImages(productResponse.data.images || []);     
 
       // Asignar estados de los checkboxes
       visible.value = Boolean(productResponse.data.visible);
@@ -435,7 +436,7 @@ const handleSubmit = async () => {
         <!-- 👉 Imágenes del Producto -->
         <VCard class="mb-6" title="Imágenes del Producto">
           <VCardText>
-            <DropZone :readonly="props.action == 'SHOW' ? true : false" />
+            <DropZone :images="formData.images" :readonly="props.action == 'SHOW' ? true : false" />
           </VCardText>
         </VCard>
       </VCol>
