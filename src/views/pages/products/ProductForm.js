@@ -110,7 +110,8 @@ export const fetchProductById = async (id) => {
                     visible: Boolean(productData.visible), // Asegurar valor booleano
                     destacated: Boolean(productData.destacated), // Asegurar valor booleano
                     category: productData.category,
-                    subcategory: productData.subcategory
+                    subcategory: productData.subcategory,
+                    images: productData.images || [],
                 },
                 message: response.data.message
             };

@@ -6,6 +6,7 @@
 export {}
 declare global {
   const $api: typeof import('./src/utils/api.js')['$api']
+  const $axios: typeof import('./src/utils/api.js')['$axios']
   const COOKIE_MAX_AGE_1_YEAR: typeof import('./src/utils/constants.js')['COOKIE_MAX_AGE_1_YEAR']
   const EffectScope: typeof import('vue')['EffectScope']
   const acceptHMRUpdate: typeof import('pinia')['acceptHMRUpdate']
@@ -360,6 +361,7 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly $api: UnwrapRef<typeof import('./src/utils/api.js')['$api']>
+    readonly $axios: UnwrapRef<typeof import('./src/utils/api.js')['$axios']>
     readonly COOKIE_MAX_AGE_1_YEAR: UnwrapRef<typeof import('./src/utils/constants.js')['COOKIE_MAX_AGE_1_YEAR']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
@@ -707,6 +709,7 @@ declare module '@vue/runtime-core' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly $api: UnwrapRef<typeof import('./src/utils/api.js')['$api']>
+    readonly $axios: UnwrapRef<typeof import('./src/utils/api.js')['$axios']>
     readonly COOKIE_MAX_AGE_1_YEAR: UnwrapRef<typeof import('./src/utils/constants.js')['COOKIE_MAX_AGE_1_YEAR']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
