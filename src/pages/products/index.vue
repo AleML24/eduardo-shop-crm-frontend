@@ -1,5 +1,5 @@
   <script setup>
-  import { onMounted } from 'vue'
+  import { onMounted, watch } from 'vue'
   import { $axios } from '../../utils/api'
   import { fetchFilters, fetchProducts, updateProduct } from './index'
   import { debounce } from 'lodash';
@@ -355,6 +355,10 @@
     getFilters();
   })
 
+  watch([selectedDestacated, selectedVisible], () => {
+    getProducts()
+  })
+
 
 
 </script>
@@ -382,26 +386,45 @@
           </VRow>
           <VRow>
             <!-- 👉 Select Destacado -->
-            <VCol cols="12" sm="6">
-              <v-card variant="flat">
-                <v-radio-group v-model="selectedDestacated" inline @change="getProducts">
-                  <h3 class="font-weight-thin pa-2">Destacados</h3>
-                  <v-radio label="Si" :value="1"></v-radio>
-                  <v-radio label="No" :value="0"></v-radio>
-                  <v-radio label="Todos" :value="null"></v-radio>
-                </v-radio-group>
-              </v-card>
+            <VCol cols="12" sm="6" class="d-flex justify-center align-center">
+              <VLabel class="mr-5" style="min-inline-size: min-content;">
+                Productos Visibles
+              </VLabel>
+              <VBtnToggle density="compact" v-model="selectedVisible" class="filter-button-group"
+                style="min-inline-size: min-content;">
+                <VBtn :value="0" prepend-icon="ri-close-circle-line">
+                  <template #prepend>
+                    <VIcon color="error" />
+                  </template>
+                </VBtn>
+                <VBtn label="Todos" icon="ri-circle-line" />
+                <VBtn :value="1" append-icon="ri-checkbox-circle-line">
+                  <template #append>
+                    <VIcon color="success" />
+                  </template>
+                </VBtn>
+              </VBtnToggle>
             </VCol>
             <!-- 👉 Select Visible -->
-            <VCol cols="12" sm="6">
-              <v-card variant="flat">
-                <v-radio-group v-model="selectedVisible" inline @change="getProducts">
-                  <h3 class="font-weight-thin pa-2">Visibles</h3>
-                  <v-radio label="Si" :value="1"></v-radio>
-                  <v-radio label="No" :value="0"></v-radio>
-                  <v-radio label="Todos" :value="null"></v-radio>
-                </v-radio-group>
-              </v-card>
+
+            <VCol cols="12" sm="6" class="d-flex justify-center align-center">
+              <VLabel class="mr-5" style="min-inline-size: min-content;">
+                Productos Destacados
+              </VLabel>
+              <VBtnToggle density="compact" v-model="selectedDestacated" class="filter-button-group"
+                style="min-inline-size: min-content;">
+                <VBtn :value="0" prepend-icon="ri-close-circle-line">
+                  <template #prepend>
+                    <VIcon color="error" />
+                  </template>
+                </VBtn>
+                <VBtn label="Todos" icon="ri-circle-line" />
+                <VBtn :value="1" append-icon="ri-checkbox-circle-line">
+                  <template #append>
+                    <VIcon color="success" />
+                  </template>
+                </VBtn>
+              </VBtnToggle>
             </VCol>
           </VRow>
         </VCardText>

@@ -19,13 +19,15 @@ export default function (app) {
     themes: {
       light: {
         colors: {
-          'primary': cookieRef('lightThemePrimaryColor', staticPrimaryColor).value,
+          // 'primary': cookieRef('darkThemePrimaryColor', staticPrimaryColor).value,
+          primary : '#c5a86d', 
           'primary-darken-1': cookieRef('lightThemePrimaryDarkenColor', staticPrimaryDarkenColor).value,
         },
       },
       dark: {
         colors: {
-          'primary': cookieRef('darkThemePrimaryColor', staticPrimaryColor).value,
+          // 'primary': cookieRef('darkThemePrimaryColor', staticPrimaryColor).value,
+          primary : '#c5a86d', 
           'primary-darken-1': cookieRef('darkThemePrimaryDarkenColor', staticPrimaryDarkenColor).value,
         },
       },

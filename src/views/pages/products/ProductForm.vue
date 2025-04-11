@@ -160,7 +160,7 @@ const title = computed(() => {
   switch (props.action) {
     case PRODUCT_ACTIONS.EDIT: return 'Editar producto';
     case PRODUCT_ACTIONS.SHOW: return 'Detalles del producto';
-    default: return 'Agregar un nuevo producto';
+    default: return 'Añadir Producto';
   }
 });
 
@@ -176,9 +176,10 @@ const handleMainButtonClick = async () => {
   if (btnTitle.value === 'Editar') {
     // Navegar a la página de edición
     router.push(`/products/edit/${props.productId}`);
-  } else {
+  } else if (btnTitle.value === 'Actualizar') {
     // Ejecutar el submit normal
     await handleSubmit();
+    router.push(`/products/details/${props.productId}`);
   }
 };
 
@@ -334,12 +335,12 @@ const addNewColor = () => {
     <div class="d-flex flex-wrap justify-center justify-md-space-between gap-4 mb-6">
       <div class="d-flex flex-column justify-center">
         <h4 class="text-h4"> {{ title }} </h4>
-        <span class="text-medium-emphasis">Complete todos los campos requeridos</span>
       </div>
 
       <div class="d-flex gap-4 align-center flex-wrap">
-        <VBtn variant="outlined" color="secondary">Descartar</VBtn>
-        <VBtn @click="handleMainButtonClick" :loading="isLoading" :disabled="isLoading">
+        <VBtn v-if="props.action != 'SHOW'" variant="outlined" @click="router.go(-1)" color="secondary">Cancelar</VBtn>
+        <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.go(-1)" color="secondary">Atrás</VBtn>
+        <VBtn @click="handleMainButtonClick" prepend-icon="ri-pencil-line" :loading="isLoading" :disabled="isLoading">
           {{ btnTitle }}
         </VBtn>
       </div>
@@ -406,7 +407,7 @@ const addNewColor = () => {
 
               <VCol cols="12" class="d-flex w-100 align-center justify-space-between gap-3">
                 <v-combobox class="pa-0 ma-0 w-100" v-model="formData.color" :items="formData.color" label="Colores"
-                  variant="outlined" chips :clearable="canWrite" :closable-chips="canWrite" multiple readonly
+                  variant="outlined" chips :clearable="canWrite" :closable-chips="canWrite" multiple readonly :menu-icon="null"
                   hide-no-data append-inner-icon="" hide-details>
                   <template #chip="{ props, item }">
                     <v-chip v-bind="props">
