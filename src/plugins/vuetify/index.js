@@ -5,6 +5,8 @@ import defaults from './defaults'
 import { icons } from './icons'
 import { staticPrimaryColor, staticPrimaryDarkenColor, themes } from './theme'
 import { themeConfig } from '@themeConfig'
+import 'remixicon/fonts/remixicon.css'
+
 
 // Styles
 import { cookieRef } from '@/@layouts/stores/config'

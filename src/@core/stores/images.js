@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import {$axios} from '@/utils/api.js'
 
 export const useImageStore = defineStore('imageStore', {
     state: () => ({
@@ -13,7 +13,7 @@ export const useImageStore = defineStore('imageStore', {
             // 1. Si la imagen tiene un `path`, se intenta eliminar en el backend
             if (image?.path) {
                 try {
-                    await axios.post('/products/image-delete', {
+                    await $axios.post('/products/image-delete', {
                         path: image.path,
                     })
                 } catch (e) {

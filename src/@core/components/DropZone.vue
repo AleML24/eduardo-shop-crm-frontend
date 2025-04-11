@@ -5,11 +5,9 @@ import {
   useFileDialog,
 } from '@vueuse/core'
 
-import { useImageStore } from '@/stores/useImageStore'
-import { useAxios } from '@/composables/useAxios' // o usa directamente axios si no tienes composable
-import { giveMeASnack } from '@/composables/useSnackbar' // reemplaza por tu snack/toast real
+import { useImageStore } from '@/@core/stores/images'
+import { $axios } from '@/utils/api.js'
 
-const { $axios } = useAxios()
 const dropZoneRef = ref()
 const isLoading = ref(false)
 const imageStore = useImageStore()
@@ -37,30 +35,18 @@ onChange(async selectedFiles => {
   const filesArray = Array.from(selectedFiles)
 
   if (filesArray.length + imageStore.images.length > 10) {
-    giveMeASnack({
-      message: 'Sólo se pueden subir un máximo de 10 imágenes',
-      color: 'error',
-      timeout: 3000,
-    })
+    console.log("Sólo se pueden subir un máximo de 10 imágenes");
     return
   }
 
   const uploadPromises = filesArray.map(file => {
     if (!file.type.startsWith('image/')) {
-      giveMeASnack({
-        message: 'Sólo es permitido el contenido de tipo imagen',
-        color: 'error',
-        timeout: 3000,
-      })
+      console.log('Sólo es permitido el contenido de tipo imagen');
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      giveMeASnack({
-        message: 'El tamaño del fichero no debe ser mayor de 10MB',
-        color: 'error',
-        timeout: 3000,
-      })
+      console.log('El tamaño del fichero no debe ser mayor de 10MB');
       return
     }
 
@@ -85,11 +71,8 @@ const onDrop = async (DroppedFiles) => {
   const filesArray = Array.from(DroppedFiles)
 
   if (filesArray.length + imageStore.images.length > 10) {
-    giveMeASnack({
-      message: 'Sólo se pueden subir un máximo de 10 imágenes',
-      color: 'error',
-      timeout: 3000,
-    })
+    console.log("Sólo se pueden subir un máximo de 10 imágenes");
+
     return
   }
 
@@ -113,47 +96,61 @@ const onDrop = async (DroppedFiles) => {
 useDropZone(dropZoneRef, onDrop)
 </script>
 
-
 <template>
-  <div class="flex">
-    <div class="w-full h-auto relative">
-      <div ref="dropZoneRef" class="cursor-pointer" @click="() => open()">
-        <div v-if="imageStore.images.length === 0"
-          class="d-flex flex-column justify-center align-center gap-y-2 pa-12 drop-zone rounded">
-          <!-- ... mismo contenido ... -->
-        </div>
+  <VCardText>
+    <div class="flex">
+      <VProgressLinear v-if="isLoading" indeterminate color="primary" />
 
-        <div v-else class="d-flex justify-center align-center gap-3 pa-8 drop-zone flex-wrap">
-          <VRow class="match-height w-100">
-            <template v-for="(item, index) in imageStore.images" :key="index">
-              <VCol cols="12" sm="4">
-                <VCard :ripple="false">
-                  <VCardText class="d-flex flex-column" @click.stop>
-                    <VImg :src="item.url" width="200px" height="150px" class="w-100 mx-auto" />
-                    <div class="mt-2">
-                      <span class="clamp-text text-wrap">
-                        {{ item.file.name }}
-                      </span>
-                      <span>
-                        {{ item.file.size / 1000 }} KB
-                      </span>
-                    </div>
-                  </VCardText>
-                  <VCardActions>
-                    <VBtn variant="text" block @click.stop="imageStore.removeImage(index)">
-                      Remove File
-                    </VBtn>
-                  </VCardActions>
-                </VCard>
-              </VCol>
-            </template>
-          </VRow>
+      <div v-else class="w-full h-auto relative">
+        <div ref="dropZoneRef" class="cursor-pointer" @click="() => imageStore.images.length < 10 && open()">
+          <!-- Vista vacía -->
+          <div v-if="imageStore.images.length === 0"
+            class="d-flex flex-column justify-center align-center gap-y-2 pa-12 border-dashed drop-zone">
+            <VAvatar variant="tonal" color="secondary" rounded>
+              <VIcon icon="ri-upload-2-line" />
+            </VAvatar>
+            <h4 class="text-h4 text-center">
+              Seleccione sus imágenes y arrástrelas aquí.
+            </h4>
+            <span class="text-disabled">O</span>
+
+            <VBtn variant="outlined">
+              Busque sus imágenes
+            </VBtn>
+          </div>
+
+          <!-- Vista con imágenes cargadas -->
+          <div v-else class="d-flex justify-center align-center gap-3 pa-8 border-dashed drop-zone flex-wrap">
+            <VRow class="match-height w-100">
+              <template v-for="(item, index) in imageStore.images" :key="index">
+                <VCol cols="12" sm="4">
+                  <VCard :ripple="false" border>
+                    <VCardText class="d-flex flex-column" @click.stop>
+                      <VImg :src="item.url" width="200px" height="150px" class="w-100 mx-auto" />
+                      <div class="mt-2 text-center">
+                        <span class="clamp-text text-wrap d-block">
+                          {{ item.file.name }}
+                        </span>
+                        <span>
+                          {{ (item.file.size / 1000).toFixed(1) }} KB
+                        </span>
+                      </div>
+                    </VCardText>
+                    <VCardActions>
+                      <VBtn variant="text" block @click.stop="imageStore.removeImage(index)">
+                        Eliminar Fichero
+                      </VBtn>
+                    </VCardActions>
+                  </VCard>
+                </VCol>
+              </template>
+            </VRow>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </VCardText>
 </template>
-
 
 <style lang="scss" scoped>
 .drop-zone {

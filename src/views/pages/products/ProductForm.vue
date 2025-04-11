@@ -11,7 +11,7 @@ import {
 import { PRODUCT_ACTIONS } from '@/constants/products';
 import { useRouter } from 'vue-router';
 const router = useRouter();
-import { useImageStore } from '@/stores/useImageStore'
+import { useImageStore } from '@/@core/stores/images'
 const imageStore = useImageStore()
 
 // Definición de props del componente
