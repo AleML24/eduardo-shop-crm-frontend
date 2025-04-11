@@ -28,6 +28,7 @@ const props = defineProps({
 });
 
 // Estado del formulario con valores iniciales
+const tipoPeso = ref(null);
 const formData = ref({
   code: null,
   name: '',
@@ -260,7 +261,8 @@ const handleSubmit = async () => {
     if (!formData.value.name) validationErrors.push('Nombre es requerido');
     if (!formData.value.price) validationErrors.push('Precio es requerido');
     if (!formData.value.amount) validationErrors.push('Cantidad es requerida');
-    if (!formData.value.description) validationErrors.push('Descripción es requerida');
+    if (!formData.value.weight) validationErrors.push('Peso es requerido');
+    // if (!formData.value.description) validationErrors.push('Descripción es requerida');
 
     const validColors = formData.value.color.filter(c => c.trim() !== '');
     if (validColors.length === 0) validationErrors.push('Al menos un color es requerido');
@@ -275,7 +277,7 @@ const handleSubmit = async () => {
       color: validColors,
       price: parseFloat(formData.value.price),
       amount: parseInt(formData.value.amount),
-      weight: parseFloat(formData.value.weight || 0),
+      weight: formData.value.weight + " " + tipoPeso.value,
       visible: visible.value,
       destacated: destacated.value,
       images: imageStore.images.map(img => ({
@@ -298,6 +300,7 @@ const handleSubmit = async () => {
     } else {
       // Creación de nuevo producto
       response = await submitProduct(payload);
+
       if (response.success) {
         successMessage.value = response.message || 'Producto creado exitosamente';
         resetForm();
@@ -339,7 +342,8 @@ const addNewColor = () => {
 
       <div class="d-flex gap-4 align-center flex-wrap">
         <VBtn v-if="props.action != 'SHOW'" variant="outlined" @click="router.go(-1)" color="secondary">Cancelar</VBtn>
-        <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.go(-1)" color="secondary">Atrás</VBtn>
+        <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.go(-1)" color="secondary">Atrás
+        </VBtn>
         <VBtn @click="handleMainButtonClick" prepend-icon="ri-pencil-line" :loading="isLoading" :disabled="isLoading">
           {{ btnTitle }}
         </VBtn>
@@ -396,8 +400,16 @@ const addNewColor = () => {
               </VCol>
 
               <VCol cols="12" md="6">
-                <VTextField v-model="formData.weight" label="Peso (gr)" type="number" :readonly="!canWrite"
-                  step="0.01" />
+                <v-row>
+                  <v-col cols="12" sm="7">
+                    <VTextField v-model="formData.weight" label="Peso" type="number" :readonly="!canWrite" step="0.01"
+                      :rules="[v => !!v || 'Peso es requerido']" />
+                  </v-col>
+                  <v-col cols="12" sm="5">
+                    <v-select label="Tipo" v-model="tipoPeso" :items="['g', 'gr', 'lb', 'kg', 't']" variant="outlined"
+                      :rules="[v => !!v || 'Tipo de peso es requerido']"></v-select>
+                  </v-col>
+                </v-row>
               </VCol>
 
               <VCol cols="12" md="6">
@@ -407,8 +419,8 @@ const addNewColor = () => {
 
               <VCol cols="12" class="d-flex w-100 align-center justify-space-between gap-3">
                 <v-combobox class="pa-0 ma-0 w-100" v-model="formData.color" :items="formData.color" label="Colores"
-                  variant="outlined" chips :clearable="canWrite" :closable-chips="canWrite" multiple readonly :menu-icon="null"
-                  hide-no-data append-inner-icon="" hide-details>
+                  variant="outlined" chips :clearable="canWrite" :closable-chips="canWrite" multiple readonly
+                  :menu-icon="null" hide-no-data append-inner-icon="" hide-details>
                   <template #chip="{ props, item }">
                     <v-chip v-bind="props">
                       <strong>{{ item.raw }}</strong>
