@@ -1,7 +1,7 @@
   <script setup>
   import { onMounted } from 'vue'
   import { $axios } from '../../utils/api'
-  import { fetchFilters, fetchProducts, updateProduct } from './index'
+  import { fetchFilters, fetchProducts, updateProduct, deleteProduct } from './index'
   import { debounce } from 'lodash';
   import { onClickOutside } from '@vueuse/core';
   import { useRouter } from 'vue-router';
@@ -193,6 +193,29 @@
       }
     }, 200);
   };
+
+  // Estados compartidos
+  const errorMessage = ref(null)
+  const successMessage = ref(null)
+
+  const dialogConfirmDeleteProduct = false
+
+  // Eliminar producto
+  const handleDeleteProduct = async (productId) => {
+    try {
+      const response = await deleteProduct(productId)
+      if (response.success) {
+        successMessage.value = response.message || 'Producto eliminado correctamente'
+        await getProducts()
+        // dialogConfirmDeleteSubcategory.value = false
+      } else {
+        errorMessage.value = response.message || 'Error al eliminar producto'
+      }
+    } catch (error) {
+      errorMessage.value = 'Error inesperado al eliminar producto'
+      console.error("Error completo:", error)
+    }
+  }
 
   //filters
   const search = ref("");
@@ -532,9 +555,16 @@
                     Download
                   </VListItem>
 
-                  <VListItem value="delete" prepend-icon="ri-delete-bin-line" @click="deleteProduct(item.id)">
-                    Delete
-                  </VListItem>
+                  <v-btn variant="text" block color="error" @click="handleDeleteProduct(item.id)">Eliminar</v-btn>
+
+                  
+
+
+
+
+
+
+
 
                   <VListItem value="duplicate" prepend-icon="ri-stack-line">
                     Duplicate

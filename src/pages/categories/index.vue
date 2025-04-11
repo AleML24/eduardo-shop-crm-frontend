@@ -267,7 +267,7 @@ const resetForms = () => {
                   <div class="text-h4 font-weight-thin">
                     {{ category.name }}
                   </div>
-                  <div class="d-flex justif-center">
+                  <div class="d-flex justif-center mx-1">
                     <v-btn density="comfortable" icon variant="text" color="warning"
                       @click.stop="openDialogCategory(category)">M</v-btn>
 

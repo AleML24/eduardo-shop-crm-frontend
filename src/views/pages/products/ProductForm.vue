@@ -26,6 +26,7 @@ const props = defineProps({
 });
 
 // Estado del formulario con valores iniciales
+const tipoPeso = ref(null);
 const formData = ref({
   code: null,
   name: '',
@@ -262,6 +263,7 @@ const handleSubmit = async () => {
     if (!formData.value.name) validationErrors.push('Nombre es requerido');
     if (!formData.value.price) validationErrors.push('Precio es requerido');
     if (!formData.value.amount) validationErrors.push('Cantidad es requerida');
+    if (!formData.value.weight) validationErrors.push('Peso es requerido');
     // if (!formData.value.description) validationErrors.push('Descripción es requerida');
 
     const validColors = formData.value.color.filter(c => c.trim() !== '');
@@ -277,7 +279,7 @@ const handleSubmit = async () => {
       color: validColors,
       price: parseFloat(formData.value.price),
       amount: parseInt(formData.value.amount),
-      weight: parseFloat(formData.value.weight || 0),
+      weight: formData.value.weight + " " + tipoPeso.value,
       visible: visible.value,
       destacated: destacated.value
     };
@@ -294,6 +296,7 @@ const handleSubmit = async () => {
     } else {
       // Creación de nuevo producto
       response = await submitProduct(payload);
+      
       if (response.success) {
         successMessage.value = response.message || 'Producto creado exitosamente';
         resetForm();
@@ -378,8 +381,15 @@ const handleSubmit = async () => {
               </VCol>
 
               <VCol cols="12" md="6">
-                <VTextField v-model="formData.weight" label="Peso (lb)" type="number" :readonly="!canWrite"
-                  step="0.01" />
+                <v-row>
+                  <v-col cols="12" sm="7">
+                    <VTextField v-model="formData.weight" label="Peso" type="number" :readonly="!canWrite"
+                      step="0.01" :rules="[v => !!v || 'Peso es requerido']" />
+                  </v-col>
+                  <v-col cols="12" sm="5">
+                    <v-select label="Tipo" v-model="tipoPeso" :items="['g', 'gr', 'lb', 'kg', 't']" variant="outlined" :rules="[v => !!v || 'Tipo de peso es requerido']" ></v-select>
+                  </v-col>
+                </v-row>
               </VCol>
 
               <VCol cols="12" md="6">
@@ -414,7 +424,7 @@ const handleSubmit = async () => {
 
               <VCol cols="12">
                 <VLabel>Descripción (Opcional)</VLabel>
-                <v-textarea :readonly="!canWrite" label="Label" v-model="formData.description" variant="outlined"
+                <v-textarea :readonly="!canWrite" v-model="formData.description" variant="outlined"
                   placeholder="Descripción detallada del producto..." class="mt-1 rounded" auto-grow></v-textarea>
 
               </VCol>
