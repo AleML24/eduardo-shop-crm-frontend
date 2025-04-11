@@ -408,20 +408,16 @@
 
         <VDivider />
 
-        <VCardText class="d-flex flex-wrap gap-4">
-          <VRow>
+        <VCardText class="d-flex justify-space-between gap-4">
+          <VRow class="w-100">
             <VCol cols="12" sm="6">
               <!-- 👉 Search  -->
               <VTextField v-model="search" @input="onSearchInput" placeholder="Buscar productos" density="compact"
-                prepend-inner-icon="ri-search-line" clearable style="inline-size: 350px;" />
+                prepend-inner-icon="ri-search-line" clearable />
             </VCol>
-            <VCol class="d-flex justify-end" cols="12" sm="6">
-              <!-- 👉 Export button -->
-              <VBtn class="me-5" variant="outlined" color="secondary" prepend-icon="ri-external-link-line">
-                Export
-              </VBtn>
+            <VCol class="d-flex w-100 justify-end" cols="12" sm="6">
               <VBtn color="primary" prepend-icon="ri-add-line" @click="$router.push('/products/add')">
-                Add Product
+                Añadir Producto
               </VBtn>
             </VCol>
           </VRow>

@@ -110,7 +110,7 @@ const loadProductById = async () => {
         color: productResponse.data.color || [''],
       };
 
-      imageStore.setImages(productResponse.data.images || []);     
+      imageStore.setImages(productResponse.data.images || []);
 
       // Asignar estados de los checkboxes
       visible.value = Boolean(productResponse.data.visible);
@@ -187,6 +187,7 @@ const canWrite = computed(() =>
   [PRODUCT_ACTIONS.CREATE, PRODUCT_ACTIONS.EDIT].includes(props.action)
 );
 
+
 // Watcher para cargar subcategorías cuando cambia la categoría
 watch(() => formData.value.category_id, async (newVal, oldVal) => {
   if (newVal && newVal !== oldVal) {
@@ -205,13 +206,6 @@ watch(() => formData.value.category_id, async (newVal, oldVal) => {
     }
   }
 }, { immediate: true });
-
-/**
- * Maneja la adición de nuevos campos de color
- */
-const addColor = () => {
-  formData.value.color.push('');
-};
 
 /**
  * Maneja la eliminación de campos de color
@@ -320,6 +314,19 @@ const handleSubmit = async () => {
     isLoading.value = false;
   }
 };
+
+const addColorDialog = ref(false)
+const newColor = ref(null)
+const toggleAddColorDialog = () => {
+  addColorDialog.value = !addColorDialog.value;
+};
+const addNewColor = () => {
+  if (newColor.value) {
+    formData.value.color.push(newColor.value);
+    newColor.value = '';
+    toggleAddColorDialog();
+  }
+}
 </script>
 
 <template>
@@ -397,34 +404,39 @@ const handleSubmit = async () => {
                   :readonly="!canWrite" />
               </VCol>
 
-              <VCol cols="12" md="6">
-                <VLabel class="mb-2">Colores</VLabel>
+              <VCol cols="12" class="d-flex w-100 align-center justify-space-between gap-3">
+                <v-combobox class="pa-0 ma-0 w-100" v-model="formData.color" :items="formData.color" label="Colores"
+                  variant="outlined" chips :clearable="canWrite" :closable-chips="canWrite" multiple readonly
+                  hide-no-data append-inner-icon="" hide-details>
+                  <template #chip="{ props, item }">
+                    <v-chip v-bind="props">
+                      <strong>{{ item.raw }}</strong>
+                    </v-chip>
+                  </template>
+                </v-combobox>
 
-                <div v-for="(color, index) in formData.color" :key="index" class="d-flex align-center mb-2"
-                  :readonly="!canWrite">
+                <v-btn icon="ri-add-line" color="primary" @click="toggleAddColorDialog" v-if="canWrite">
+                </v-btn>
 
 
-                  <VTextField v-model="formData.color[index]"
-                    :label="index === 0 ? 'Color principal*' : 'Color adicional'" :readonly="!canWrite">
-                    <template v-if="index > 0" #append-inner>
-                      <VBtn v-if="btnTitle != 'Editar'" variant="text" color="error" icon size="small"
-                        @click.stop="removeColor(index)" class="ml-1">
-                        X
-                      </VBtn>
-                    </template>
-                  </VTextField>
-                </div>
-              </VCol>
-              <VCol cols="12" md="6">
-                <VBtn class="mt-8" v-if="btnTitle != 'Editar'" @click="addColor" variant="outlined" color="primary"
-                  icon>
-                  +
-                </VBtn>
+                <!-- Diálogo para añadir nuevo color -->
+                <v-dialog v-model="addColorDialog" max-width="400">
+                  <v-card>
+                    <v-card-title>Añadir nuevo color</v-card-title>
+                    <v-card-text>
+                      <v-text-field v-model="newColor" label="Nombre" />
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-spacer />
+                      <v-btn text @click="toggleAddColorDialog">Cancelar</v-btn>
+                      <v-btn color="primary" @click="addNewColor">Añadir</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
               </VCol>
 
               <VCol cols="12">
-                <VLabel>Descripción (Opcional)</VLabel>
-                <v-textarea :readonly="!canWrite" label="Label" v-model="formData.description" variant="outlined"
+                <v-textarea :readonly="!canWrite" label="Descripción" v-model="formData.description" variant="outlined"
                   placeholder="Descripción detallada del producto..." class="mt-1 rounded"
                   :rules="[v => !!v || 'Descripción es requerida']" auto-grow></v-textarea>
 
@@ -463,30 +475,13 @@ const handleSubmit = async () => {
         <!-- 👉 Precios -->
         <VCard class="mb-6">
           <VCardText>
-            <VCheckbox :readonly="!canWrite" v-model="visible" label="Marcar como visible" />
-            <VCheckbox :readonly="!canWrite" v-model="destacated" label="Marcar como destacado" />
+            <VSwitch :readonly="!canWrite" v-model="visible" label="Marcar como visible" />
+            <VSwitch :readonly="!canWrite" v-model="destacated" label="Marcar como destacado" />
           </VCardText>
         </VCard>
       </VCol>
     </VRow>
   </div>
-
-  <template>
-    <div class="text-center pa-4">
-      <v-btn @click="dialog = true">
-        Open Dialog
-      </v-btn>
-
-      <v-dialog v-model="dialog" width="auto">
-        <v-card max-width="400" prepend-icon="mdi-update"
-          text="Your application will relaunch automatically after the update is complete." title="Update in progress">
-          <template v-slot:actions>
-            <v-btn class="ms-auto" text="Ok" @click="dialog = false"></v-btn>
-          </template>
-        </v-card>
-      </v-dialog>
-    </div>
-  </template>
 </template>
 
 <style lang="scss" scoped>
