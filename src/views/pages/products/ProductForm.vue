@@ -27,27 +27,31 @@ const props = defineProps({
   }
 });
 
+// Definición de emits del componente
+const validForm = ref(true);
+const form = ref(null);
+
+// Opciones para selects
+const states = ref(['Disponible', 'Agotado']);
+const categories = ref([]);
+const subcategories = ref([]);
+
 // Estado del formulario con valores iniciales
 const tipoPeso = ref(null);
 const formData = ref({
   code: null,
-  name: '',
-  description: '',
-  price: 0,
-  amount: 0,
-  state: 'disponible',
-  dimension: '',
-  weight: 0,
-  capacity: '',
+  name: null,
+  description: null,
+  price: null,
+  amount: null,
+  state: states.value[0], // 'disponible'
+  dimension: null,
+  weight: null,
+  capacity: null,
   color: [],
   category_id: null,
   subcategory_id: null
 });
-
-// Opciones para selects
-const states = ref(['disponible', 'agotado', 'reservado']);
-const categories = ref([]);
-const subcategories = ref([]);
 
 // Estados de la UI
 const isLoading = ref(false);
@@ -176,7 +180,10 @@ const handleMainButtonClick = async () => {
     // Navegar a la página de edición
     router.push(`/products/edit/${props.productId}`);
   } else if (btnTitle.value !== 'Editar') {
-    // Ejecutar el submit normal
+
+    if (!(await form.value.validate()).valid) {
+      return false
+    }
     const success = await handleSubmit();
     if (success) {
       imageStore.clearImages()
@@ -257,25 +264,9 @@ const handleSubmit = async () => {
   successMessage.value = null;
 
   try {
-    // Validación del formulario
-    const validationErrors = [];
-    if (!formData.value.name) validationErrors.push('Nombre es requerido');
-    if (!formData.value.price) validationErrors.push('Precio es requerido');
-    if (!formData.value.amount) validationErrors.push('Cantidad es requerida');
-    if (!formData.value.weight) validationErrors.push('Peso es requerido');
-    // if (!formData.value.description) validationErrors.push('Descripción es requerida');
-
-    const validColors = formData.value.color.filter(c => c.trim() !== '');
-    if (validColors.length === 0) validationErrors.push('Al menos un color es requerido');
-
-    if (validationErrors.length > 0) {
-      throw new Error(validationErrors.join('\n'));
-    }
-
     // Preparar datos para enviar
     const payload = {
       ...formData.value,
-      color: validColors,
       price: parseFloat(formData.value.price),
       amount: parseInt(formData.value.amount),
       weight: formData.value.weight + " " + tipoPeso.value,
@@ -348,172 +339,196 @@ const handleDeleteProduct = async (productId) => {
     console.error("Error completo:", error)
   }
 }
+
+const weightUnits = [
+  { title: 'Kilogramo (kg)', value: 'kg' },
+  { title: 'Gramo (g)', value: 'g' },
+  { title: 'Tonelada (t)', value: 't' },
+  { title: 'Libra (lb)', value: 'lb' }
+];
+
+const rules = {
+  required: [
+    v => v !== null && v !== undefined && v !== '' || 'El campo es obligatorio',
+  ],
+  numeric: [
+    v => v === '' || /^-?\d+(\.\d+)?$/.test(v) || "El campo debe ser un número válido",
+  ],
+  string: [
+    v => typeof v === 'string' && v.trim().length > 0 || 'El campo debe ser una cadena de texto no vacía',
+  ]
+
+};
+
 </script>
 
 <template>
   <div>
-    <div class="d-flex justify-md-space-between mb-6">
-      <div class="d-flex justify-center">
-        <h4 class="text-h4"> {{ title }} </h4>
+    <v-form @submit.prevent="handleMainButtonClick" ref="form">
+      <div class="d-flex justify-md-space-between mb-6">
+        <div class="d-flex justify-center">
+          <h4 class="text-h4"> {{ title }} </h4>
+        </div>
+
+        <div class="d-flex gap-2 align-center justify-center">
+          <VBtn v-if="props.action != 'SHOW'" variant="outlined" @click="router.go(-1)" color="secondary">Cancelar
+          </VBtn>
+          <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.push('/products')"
+            color="secondary">Atrás
+          </VBtn>
+          <v-btn v-if="props.action == 'EDIT'" color="error" prepend-icon="ri-delete-bin-line"
+            @click="handleDeleteProduct(item.id)">Eliminar</v-btn>
+          <VBtn @click="handleMainButtonClick" :type="props.action != 'EDIT' ? 'submit' : 'button'"
+            prepend-icon="ri-edit-box-line" :loading="isLoading" :disabled="isLoading">
+            {{ btnTitle }}
+          </VBtn>
+        </div>
       </div>
 
-      <div class="d-flex gap-2 align-center justify-center">
-        <VBtn v-if="props.action != 'SHOW'" variant="outlined" @click="router.go(-1)" color="secondary">Cancelar</VBtn>
-        <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.push('/products')"
-          color="secondary">Atrás
-        </VBtn>
-        <v-btn v-if="props.action == 'EDIT'" color="error" prepend-icon="ri-delete-bin-line"
-          @click="handleDeleteProduct(item.id)">Eliminar</v-btn>
-        <VBtn @click="handleMainButtonClick" prepend-icon="ri-pencil-line" :loading="isLoading" :disabled="isLoading">
-          {{ btnTitle }}
-        </VBtn>
-      </div>
-    </div>
+      <!-- Mensajes de estado -->
+      <VAlert v-if="errorMessage" type="error" class="mb-4">
+        {{ errorMessage }}
+      </VAlert>
 
-    <!-- Mensajes de estado -->
-    <VAlert v-if="errorMessage" type="error" class="mb-4">
-      {{ errorMessage }}
-    </VAlert>
+      <VAlert v-if="successMessage" type="success" class="mb-4">
+        {{ successMessage }}
+      </VAlert>
 
-    <VAlert v-if="successMessage" type="success" class="mb-4">
-      {{ successMessage }}
-    </VAlert>
 
-    <VRow>
-      <VCol md="8">
-        <!-- 👉 Información del Producto -->
-        <VCard class="mb-6" title="Información del Producto">
-          <VCardText>
-            <VRow>
-              <VCol cols="12" md="6">
-                <VTextField v-model="formData.code" label="Código" readonly />
-              </VCol>
+      <VRow>
+        <VCol md="8">
+          <!-- 👉 Información del Producto -->
+          <VCard class="mb-6" title="Información del Producto">
+            <VCardText>
+              <VRow>
+                <VCol cols="12" md="2">
+                  <VTextField v-model="formData.code" label="Código" readonly />
+                </VCol>
 
-              <VCol cols="12" md="6">
-                <VTextField v-model="formData.name" label="Nombre*" placeholder="Ej: iPhone 13"
-                  :rules="[v => !!v || 'Nombre es requerido']" :readonly="!canWrite" />
-              </VCol>
+                <VCol cols="12" md="6">
+                  <VTextField v-model="formData.name" label="Nombre*" placeholder="Nombre del prodcuto"
+                    :rules="[...rules.required, ...rules.string]" :readonly="!canWrite" />
+                </VCol>
 
-              <VCol cols="12">
-                <v-textarea :readonly="!canWrite" label="Descripción" v-model="formData.description" variant="outlined"
-                  placeholder="Descripción detallada del producto..." class="mt-1 rounded"
-                  :rules="[v => !!v || 'Descripción es requerida']" auto-grow></v-textarea>
-
-              </VCol>
-
-              <VCol cols="12" md="6">
-                <VTextField v-model="formData.price" label="Precio*" type="number" step="0.01" :readonly="!canWrite"
-                  :rules="[
-                    v => !!v || 'Precio es requerido',
+                <VCol cols="12" md="4">
+                  <VTextField v-model="formData.price" label="Precio*" :readonly="!canWrite" :rules="[
+                    ...rules.required, ...rules.numeric,
                     v => v >= 0 || 'El precio no puede ser negativo'
                   ]" />
-              </VCol>
+                </VCol>
+                <VCol cols="12">
+                  <v-textarea :readonly="!canWrite" label="Descripción" v-model="formData.description"
+                    variant="outlined" placeholder="Descripción detallada del producto..." class="mt-1 rounded"
+                    :rules="[...rules.required]" auto-grow></v-textarea>
 
-              <VCol cols="12" md="6">
-                <VTextField v-model="formData.amount" label="Cantidad*" type="number" :readonly="!canWrite" :rules="[
-                  v => !!v || 'Cantidad es requerida',
-                  v => v >= 0 || 'La cantidad no puede ser negativa'
-                ]" />
-              </VCol>
-
-              <VCol cols="12" md="6">
-                <VSelect v-model="formData.state" label="Estado*" :readonly="!canWrite" :items="states"
-                  :rules="[v => !!v || 'Estado es requerido']" />
-              </VCol>
-
-              <VCol cols="12" md="6">
-                <VTextField v-model="formData.dimension" label="Dimensiones" placeholder="Ej: 16cm x 5cm"
-                  :readonly="!canWrite" />
-              </VCol>
-
-              <VCol cols="12" md="6">
-                <v-row>
-                  <v-col cols="12" sm="7">
-                    <VTextField v-model="formData.weight" label="Peso" type="number" :readonly="!canWrite" step="0.01"
-                      :rules="[v => !!v || 'Peso es requerido']" />
-                  </v-col>
-                  <v-col cols="12" sm="5">
-                    <v-select label="Tipo" v-model="tipoPeso" :items="['g', 'gr', 'lb', 'kg', 't']" variant="outlined"
-                      :rules="[v => !!v || 'Tipo de peso es requerido']"></v-select>
-                  </v-col>
-                </v-row>
-              </VCol>
-
-              <VCol cols="12" md="6">
-                <VTextField v-model="formData.capacity" label="Capacidad" placeholder="Ej: 128 GB"
-                  :readonly="!canWrite" />
-              </VCol>
-
-              <VCol cols="12" class="d-flex w-100 align-center justify-space-between gap-3">
-                <v-combobox class="pa-0 ma-0 w-100" v-model="formData.color" :items="formData.color" label="Colores"
-                  variant="outlined" chips :clearable="canWrite" :closable-chips="canWrite" multiple readonly
-                  :menu-icon="null" hide-no-data append-inner-icon="" hide-details>
-                  <template #chip="{ props, item }">
-                    <v-chip v-bind="props">
-                      <strong>{{ item.raw }}</strong>
-                    </v-chip>
-                  </template>
-                </v-combobox>
-
-                <v-btn icon="ri-add-line" color="primary" @click="toggleAddColorDialog" v-if="canWrite">
-                </v-btn>
+                </VCol>
 
 
-                <!-- Diálogo para añadir nuevo color -->
-                <v-dialog v-model="addColorDialog" max-width="400">
-                  <v-card>
-                    <v-card-title>Añadir nuevo color</v-card-title>
-                    <v-card-text>
-                      <v-text-field v-model="newColor" label="Nombre" />
-                    </v-card-text>
-                    <v-card-actions>
-                      <v-spacer />
-                      <v-btn text @click="toggleAddColorDialog">Cancelar</v-btn>
-                      <v-btn color="primary" @click="addNewColor">Añadir</v-btn>
-                    </v-card-actions>
-                  </v-card>
-                </v-dialog>
-              </VCol>
-            </VRow>
-          </VCardText>
-        </VCard>
+                <VCol cols="12" md="6">
+                  <VTextField v-model="formData.amount" label="Cantidad Total*":readonly="!canWrite"
+                    :rules="[
+                      ...rules.required, ...rules.numeric,
+                      v => v >= 0 || 'La cantidad no puede ser negativa'
+                    ]" />
+                </VCol>
+                <VCol cols="12" md="6">
+                  <VTextField v-model="formData.amount" label="Cantidad Vendida" :readonly="!canWrite"
+                    :rules="[
+                      ...rules.required, ...rules.numeric,
+                      v => v >= 0 || 'La cantidad no puede ser negativa'
+                    ]" />
+                </VCol>
 
-        <!-- 👉 Imágenes del Producto -->
-        <VCard class="mb-6" title="Imágenes del Producto">
-          <VCardText>
-            <DropZone :images="formData.images" :readonly="props.action == 'SHOW' ? true : false" />
-          </VCardText>
-        </VCard>
-      </VCol>
+                <VCol cols="12" md="6">
+                  <VSelect v-model="formData.state" label="Estado*" :readonly="!canWrite" :items="states"
+                    :rules="[v => !!v || 'Estado es requerido']" />
+                </VCol>
 
-      <VCol md="4">
-        <!-- 👉 Organización -->
-        <VCard title="Organización" class="mb-6">
-          <VCardText>
-            <div class="d-flex flex-column gap-y-4">
-              <div>
-                <!-- Tu select de categorías -->
-                <VSelect v-model="formData.category_id" label="Categoría*" :items="categories" item-title="title"
-                  item-value="value" :rules="[v => !!v || 'Categoría es requerida']" :readonly="!canWrite" clearable
-                  :disabled="isLoading" />
+                <VCol cols="12" md="6">
+                  <VTextField v-model="formData.dimension" label="Dimensiones" placeholder="Ej: 16cm x 5cm"
+                    :readonly="!canWrite" />
+                </VCol>
+
+                <VCol cols="12" md="6">
+                  <VTextField v-model="formData.weight" label="Peso y Unidad de Medida" :readonly="!canWrite""
+                    :rules="[...rules.required, ...rules.numeric]" />
+                </VCol>
+
+                <VCol cols="12" md="6">
+                  <VTextField v-model="formData.capacity" label="Capacidad" placeholder="Ej: 128 GB"
+                    :readonly="!canWrite" />
+                </VCol>
+
+                <VCol cols="12" class="d-flex w-100 align-center justify-space-between gap-3">
+                  <v-combobox class="pa-0 ma-0 w-100" v-model="formData.color" :items="formData.color" label="Colores"
+                    variant="outlined" chips :clearable="canWrite" :closable-chips="canWrite" multiple readonly
+                    :menu-icon="null" hide-no-data append-inner-icon="" hide-details>
+                    <template #chip="{ props, item }">
+                      <v-chip v-bind="props">
+                        <strong>{{ item.raw }}</strong>
+                      </v-chip>
+                    </template>
+                  </v-combobox>
+
+                  <v-btn icon="ri-add-line" color="primary" @click="toggleAddColorDialog" v-if="canWrite">
+                  </v-btn>
+
+
+                  <!-- Diálogo para añadir nuevo color -->
+                  <v-dialog v-model="addColorDialog" max-width="400">
+                    <v-card>
+                      <v-card-title>Añadir nuevo color</v-card-title>
+                      <v-card-text>
+                        <v-text-field v-model="newColor" label="Nombre" />
+                      </v-card-text>
+                      <v-card-actions>
+                        <v-spacer />
+                        <v-btn text @click="toggleAddColorDialog">Cancelar</v-btn>
+                        <v-btn color="primary" @click="addNewColor">Añadir</v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-dialog>
+                </VCol>
+              </VRow>
+            </VCardText>
+          </VCard>
+
+          <!-- 👉 Imágenes del Producto -->
+          <VCard class="mb-6" title="Imágenes del Producto">
+            <VCardText>
+              <DropZone :images="formData.images" :readonly="props.action == 'SHOW' ? true : false" />
+            </VCardText>
+          </VCard>
+        </VCol>
+
+        <VCol md="4">
+          <!-- 👉 Organización -->
+          <VCard title="Organización" class="mb-6">
+            <VCardText>
+              <div class="d-flex flex-column gap-y-4">
+                <div>
+                  <!-- Tu select de categorías -->
+                  <VSelect v-model="formData.category_id" label="Categoría*" :items="categories" item-title="title"
+                    item-value="value" :rules="[...rules.required]" :readonly="!canWrite" clearable
+                    :disabled="isLoading" />
+                </div>
+
+                <VSelect :readonly="!canWrite" v-model="formData.subcategory_id" label="Subcategoría*"
+                  :items="subcategories" item-title="title" item-value="value" :disabled="!formData.category_id"
+                  :rules="[...rules.required]" clearable />
               </div>
+            </VCardText>
+          </VCard>
 
-              <VSelect :readonly="!canWrite" v-model="formData.subcategory_id" label="Subcategoría*"
-                :items="subcategories" item-title="title" item-value="value" :disabled="!formData.category_id"
-                :rules="[v => !!v || 'Subcategoría es requerida']" clearable />
-            </div>
-          </VCardText>
-        </VCard>
-
-        <!-- 👉 Precios -->
-        <VCard class="mb-6">
-          <VCardText>
-            <VSwitch :readonly="!canWrite" v-model="visible" label="Marcar como visible" />
-            <VSwitch :readonly="!canWrite" v-model="destacated" label="Marcar como destacado" />
-          </VCardText>
-        </VCard>
-      </VCol>
-    </VRow>
+          <VCard class="mb-6">
+            <VCardText>
+              <VSwitch :readonly="!canWrite" v-model="visible" label="Marcar como visible" />
+              <VSwitch :readonly="!canWrite" v-model="destacated" label="Marcar como destacado" />
+            </VCardText>
+          </VCard>
+        </VCol>
+      </VRow>
+    </v-form>
   </div>
 </template>
 

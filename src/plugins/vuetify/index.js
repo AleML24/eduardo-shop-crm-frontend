@@ -20,14 +20,14 @@ export default function (app) {
       light: {
         colors: {
           // 'primary': cookieRef('darkThemePrimaryColor', staticPrimaryColor).value,
-          primary : '#c5a86d', 
-          'primary-darken-1': cookieRef('lightThemePrimaryDarkenColor', staticPrimaryDarkenColor).value,
+          primary: '#c5a86d',
+          'primary-darken-1': '#d7b36b',
         },
       },
       dark: {
         colors: {
           // 'primary': cookieRef('darkThemePrimaryColor', staticPrimaryColor).value,
-          primary : '#c5a86d', 
+          primary: '#c5a86d',
           'primary-darken-1': cookieRef('darkThemePrimaryDarkenColor', staticPrimaryDarkenColor).value,
         },
       },

@@ -1,5 +1,5 @@
   <script setup>
-  import { onMounted, watch } from 'vue'
+  import { onMounted, ref, watch } from 'vue'
   import { $axios } from '../../utils/api'
   import { fetchFilters, fetchProducts, updateProduct, deleteProduct } from './index'
   import { debounce } from 'lodash';
@@ -14,13 +14,14 @@
     { title: "Nombre", text: "Nombre", value: "name" },
     { title: "Descripción", text: "Descripción", value: "description" },
     { title: "Precio", text: "Precio", value: "price" },
-    { title: "Cantidad", text: "Cantidad", value: "amount" },
+    { title: "Cantidad Total", text: "Cantidad", value: "amount", align: 'center' },
+    { title: "Cantidad Vendida", text: "Cantidad", value: "saled", align: 'center' },
+    { title: "Visible", text: "Visible", value: "visible" },
+    { title: "Destacado", text: "Destacado", value: "destacated" },
     { title: "Estado", text: "Estado", value: "state" },
     { title: "Dimensiones", text: "Dimensiones", value: "dimension" },
     { title: "Peso", text: "Peso", value: "weight" },
     { title: "Capacidad", text: "Capacidad", value: "capacity" },
-    { title: "Destacado", text: "Destacado", value: "destacated" },
-    { title: "Visible", text: "Visible", value: "visible" },
     { title: "Color", text: "Color", value: "color" },
     { title: 'Actions', key: 'actions', sortable: false, },
   ]);
@@ -121,85 +122,53 @@
     }
   };
 
-  const pendingAmountChanges = ref({});
-
-  const handleManualAmountChange = (product, value) => {
-    const numericValue = Math.max(0, parseInt(value) || 0);
-    pendingAmountChanges.value[product.id] = numericValue;
-  };
-
-  // Función de ajuste mejorada
-  const adjustAmount = (product, delta) => {
-    const current = pendingAmountChanges.value[product.id] ?? product.amount;
-    pendingAmountChanges.value[product.id] = Math.max(0, current + delta);
-  };
-
-  // Confirmar cambio de cantidad
-  const confirmAmountChange = async (product) => {
+  // Confirmar cambio de cantidad vendida
+  const confirmSaledChange = async (product) => {
     try {
-      const newAmount = pendingAmountChanges.value[product.id];
-      const currentProduct = products.value.find(p => p.id === product.id);
+      // Validar el campo saled_modified usando las reglas
+      const isValid = await ref('saledField').value.validate(); // Usamos el ref del VTextField para validar
 
-      if (!currentProduct) {
-        throw new Error('Producto no encontrado');
+      if (!isValid) {
+        giveMeASnack({
+          message: 'Por favor, ingresa un valor válido para la cantidad',
+          color: 'error',
+          timeout: 3000,
+        });
+        return; // Si la validación falla, no proceder con la actualización
       }
 
-      // Cambio optimista
-      currentProduct.amount = newAmount;
+      // Realizar la actualización si la validación es exitosa
+      const response = await updateProduct(product.id, { saled: product.saled_modified });
 
-      const response = await updateProduct(product.id, { amount: newAmount });
-
-      if (!response.success) {
-        throw new Error(response.message);
+      // Si la respuesta es exitosa, buscamos el producto en el arreglo
+      if (response && response.data) {
+        const productToUpdate = products.value.find(p => p.id === product.id);
+        if (productToUpdate) {
+          // Actualizar el amount del producto en el arreglo con el valor modificado
+          productToUpdate.saled = product.saled_modified;
+        }
       }
-
-      // Actualizar con datos del servidor
-      currentProduct.amount = response.data.amount;
-      delete pendingAmountChanges.value[product.id];
-
     } catch (error) {
-      // Revertir cambio
+      // Si hay un error, revertir el cambio
       const productToRevert = products.value.find(p => p.id === product.id);
       if (productToRevert) {
-        productToRevert.amount = product.amount;
+        productToRevert.saled_modified = product.saled; // Revertir al valor original
       }
       console.error("Error al actualizar cantidad:", error);
     }
   };
 
+
+
   // Cancelar cambio de cantidad
-  const cancelAmountChange = (product) => {
-    delete pendingAmountChanges.value[product.id];
-  };
-
-  const amountControlWrapper = ref(null);
-
-  onClickOutside(amountControlWrapper, (event) => {
-    // Verifica si hay cambios pendientes en algún producto
-    for (const [id, value] of Object.entries(pendingAmountChanges.value)) {
-      const product = products.value.find(p => p.id === id);
-      if (product && value !== product.amount) {
-        confirmAmountChange(product);
-      }
+  const cancelSaledChange = (product) => {
+    const productToCancel = products.value.find(p => p.id === product.id);
+    if (productToCancel) {
+      // Revertir el valor de saled_modified al valor original de amount
+      productToCancel.saled_modified = productToCancel.saled;
     }
-  });
-
-  const handleBlur = (item) => {
-    // Usamos setTimeout para permitir que los clics en los botones se procesen primero
-    setTimeout(() => {
-      // Solo confirmamos si el valor ha cambiado y no se hizo clic en los botones
-      if (pendingAmountChanges.value[item.id] !== undefined &&
-        pendingAmountChanges.value[item.id] !== item.amount) {
-        confirmAmountChange(item);
-      }
-    }, 200);
   };
 
-  // Estados compartidos
-  const errorMessage = ref(null)
-  const successMessage = ref(null)
-
-  const dialogConfirmDeleteProduct = false
 
   //filters
   const search = ref("");
@@ -232,7 +201,14 @@
       return
     }
 
-    products.value = response.data
+    products.value = response.data.map((item) => {
+      return {
+        ...item,
+        saled_modified: item.saled,
+        state: item.state.charAt(0).toUpperCase() + item.state.slice(1).toLowerCase()  // Capitaliza el campo 'state'
+      }
+    });
+
     totalProduct.value = response.meta.total
     loading.value = false;
   }
@@ -264,56 +240,6 @@
 
   const handleSubcategoryChange = (value) => {
     selectedSubCategory.value = Array.isArray(value) ? value : [value];
-  };
-
-  const decrementAmount = async (product) => {
-    try {
-      if (!product || product.amount === undefined) {
-        throw new Error("Producto no válido");
-      }
-
-      if (product.amount <= 0) return;
-
-      const newAmount = product.amount - 1;
-      product.amount = newAmount; // Cambio optimista
-
-      const response = await updateProduct(product.id, { amount: newAmount });
-
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-
-      // Actualizar con datos del servidor
-      product.amount = response.data.amount;
-    } catch (error) {
-      if (product) product.amount += 1; // Revertir si hay error
-      console.error("Error en decrementAmount:", error);
-    }
-  };
-
-  const incrementAmount = async (product) => {
-    try {
-      if (!product || product.amount === undefined) {
-        throw new Error("Producto no válido");
-      }
-
-      if (product.amount <= 0) return;
-
-      const newAmount = product.amount + 1;
-      product.amount = newAmount; // Cambio optimista
-
-      const response = await updateProduct(product.id, { amount: newAmount });
-
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-
-      // Actualizar con datos del servidor
-      product.amount = response.data.amount;
-    } catch (error) {
-      if (product) product.amount += 1; // Revertir si hay error
-      console.error("Error en decrementAmount:", error);
-    }
   };
 
   const router = useRouter();
@@ -360,6 +286,18 @@
     getProducts()
   })
 
+
+  const rules = {
+    required: [
+      v => !!v || 'El campo es obligatorio',
+    ],
+    numeric: [
+      v => !v || /^-?\d+(\.\d+)?$/.test(v) || "El campo debe ser un número válido",  // Acepta números decimales
+    ],
+    string: [
+      v => typeof v === 'string' && v.trim().length > 0 || 'El campo debe ser una cadena de texto no vacía',
+    ]
+  };
 
 
 </script>
@@ -466,41 +404,39 @@
             </div>
           </template>
 
-          <!-- amount -->
-          <template #item.amount="{ item }">
-            <div class="d-flex align-center gap-2" ref="amountControlWrapper">
+          <!-- saled -->
+          <template #item.saled="{ item }">
+            <div class="d-flex align-center gap-2" style="min-width: 50px;">
               <!-- Botón decremento -->
-              <VBtn icon size="x-small" density="compact" color="white"
-                :disabled="(pendingAmountChanges[item.id] ?? item.amount) <= 0" @click="adjustAmount(item, -1)">
-                <h2>-</h2>
+              <VBtn icon="ri-subtract-line" size="x-small" density="compact" color="white"
+                :disabled="item.saled_modified <= 0" @click="item.saled_modified = item.saled_modified - 1">
               </VBtn>
 
               <!-- Campo de cantidad con contenedor -->
               <div @click.stop>
-                <VTextField :model-value="pendingAmountChanges[item.id] ?? item.amount" type="number" density="compact"
-                  width="150px" hide-details @update:model-value="(value) => handleManualAmountChange(item, value)"
-                  @blur="handleBlur(item)" ref="amountInput">
-
-                  <!-- Botones de confirmación -->
-                  <div v-if="pendingAmountChanges[item.id] !== undefined">
-                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small"
-                      @click="confirmAmountChange(item)">
-                      <h6>✔</h6>
-                    </VBtn>
-                    <VBtn icon color="white" class="elevation-0" density="compact" size="x-small"
-                      @click="cancelAmountChange(item)">
-                      <h6>✖</h6>
-                    </VBtn>
-                  </div>
+                <VTextField v-model="item.saled_modified" density="compact" hide-details style="width: 120px;" multiline
+                  auto-grow :rows="1" :max-rows="3" :rules="[rules.numeric, rules.required]" ref="saledField">
                 </VTextField>
               </div>
 
               <!-- Botón incremento -->
-              <VBtn icon size="x-small" density="compact" color="white" @click="adjustAmount(item, +1)">
-                <h2>+</h2>
+              <VBtn icon="ri-add-line" size="x-small" density="compact" color="white"
+                @click="item.saled_modified = item.saled_modified + 1">
               </VBtn>
+
+              <!-- Botones de confirmación -->
+              <div v-if="item.saled != item.saled_modified" class="d-flex gap-2 ml-4">
+                <VBtn icon="ri-check-line" color="white" class="elevation-0" density="compact" size="x-small"
+                  @click="confirmSaledChange(item)">
+                </VBtn>
+                <VBtn icon="ri-close-line" color="white" class="elevation-0" density="compact" size="x-small"
+                  @click="cancelSaledChange(item)">
+                </VBtn>
+              </div>
             </div>
           </template>
+
+
 
           <template #item.description="{ item }">
             <div class="text-wrap" style="min-width: 500px; max-width: 800px;">
@@ -546,3 +482,9 @@
       </VCard>
     </div>
   </template>
+
+<style>
+.cl {
+  color: #d7b36b
+}
+</style>
