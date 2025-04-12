@@ -205,7 +205,6 @@
       return {
         ...item,
         saled_modified: item.saled,
-        state: item.state.charAt(0).toUpperCase() + item.state.slice(1).toLowerCase()  // Capitaliza el campo 'state'
       }
     });
 

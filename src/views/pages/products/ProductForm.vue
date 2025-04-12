@@ -450,7 +450,7 @@ const rules = {
                 </VCol>
 
                 <VCol cols="12" md="6">
-                  <VTextField v-model="formData.weight" label="Peso y Unidad de Medida" :readonly="!canWrite""
+                  <VTextField v-model="formData.weight" label="Peso y Unidad de Medida" :readonly="!canWrite"
                     :rules="[...rules.required, ...rules.numeric]" />
                 </VCol>
 
