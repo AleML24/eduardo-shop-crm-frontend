@@ -321,7 +321,7 @@
 
   const rules = {
     required: [
-      v => !!v || 'El campo es obligatorio',
+      v => !!v || v === 0 || v==='0' || 'El campo es obligatorio',
     ],
     numeric: [
       v => !v || /^-?\d+(\.\d+)?$/.test(v) || "El campo debe ser un número válido",  // Acepta números decimales
