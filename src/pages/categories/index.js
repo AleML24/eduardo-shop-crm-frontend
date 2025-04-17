@@ -24,7 +24,7 @@ export const fetchCategories = async () => {
 
 export const submitCategory = async (categoryData) => {
     try {
-        const request = await $axios.post('/categories', categoryData);
+        const request = await $axios.post('/categories', {name: categoryData});
         return {
             success: request?.data?.success,
             data: request?.data?.data,

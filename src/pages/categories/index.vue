@@ -10,6 +10,16 @@ import {
   deleteCategory,
 
 } from './index'
+import AddCategory from '../components/AddCategory.vue'
+import AddSubcategory from '../components/AddSubcategory.vue'
+import { useDisplay } from 'vuetify'
+const { mobile } = useDisplay() // Obtiene las propiedades de pantalla
+
+// Puedes definir una propiedad que determine si el dispositivo es móvil 
+const isMobile = computed(() => mobile.value)
+const giveMeASnack = inject('Snackbar:giveMeASnack')
+
+
 
 // Estados para categorías
 const categories = ref([])
@@ -32,14 +42,8 @@ const successMessage = ref(null)
 const isLoading = ref(false)
 
 // Formularios
-const categoryForm = ref({
-  name: ''
-})
-
-const subcategoryForm = ref({
-  name: '',
-  category_id: null
-})
+const selectedCategory = ref(null)
+const selectedSubcategory = ref(null)
 
 // Obtener categorías al montar
 onMounted(() => {
@@ -49,16 +53,23 @@ onMounted(() => {
 // Obtener categorías
 const getCategories = async () => {
   try {
+    isLoading.value = true
     const response = await fetchCategories()
     if (!response.success) {
-      alert(response.message)
+      giveMeASnack({
+        message: response.message,
+        color: 'error'
+      })
       return
     }
     categories.value = response.data
   } catch (error) {
-    console.error("Error fetching categories:", error)
-    alert("Error al cargar las categorías")
+    giveMeASnack({
+      message: "Error al cargar las categorías",
+      color: 'error'
+    })
   }
+  isLoading.value = false
 }
 
 // Diálogo para categorías
@@ -66,197 +77,127 @@ const openDialogCategory = (category = null) => {
   if (category) {
     isEditingCategory.value = true
     currentCategoryId.value = category.id
-    categoryForm.value = { name: category.name }
+    selectedCategory.value = category
   } else {
     isEditingCategory.value = false
     currentCategoryId.value = null
-    categoryForm.value = { name: '' }
+    selectedCategory.value = null
   }
   errorMessage.value = null
   successMessage.value = null
   dialogCategory.value = true
 }
 
-// Diálogo para subcategorías
-const openDialogSubcategory = (subcategory = null, categoryId = null) => {
-  if (subcategory) {
-    isEditingSubcategory.value = true
-    currentSubcategoryId.value = subcategory.id
-    currentParentCategoryId.value = subcategory.category_id
-    subcategoryForm.value = {
-      name: subcategory.name,
-      category_id: subcategory.category_id
-    }
-  } else {
-    isEditingSubcategory.value = false
-    currentSubcategoryId.value = null
-    currentParentCategoryId.value = categoryId
-    subcategoryForm.value = {
-      name: '',
-      category_id: categoryId
-    }
-  }
-  errorMessage.value = null
-  successMessage.value = null
-  dialogSubcategory.value = true
-}
 
-// Submit para categorías
-const handleSubmitCategory = async () => {
-  errorMessage.value = null
-  successMessage.value = null
-  isLoading.value = true
-
-  try {
-    if (!categoryForm.value.name.trim()) {
-      throw new Error('El nombre de la categoría es requerido')
-    }
-
-    let response
-    if (isEditingCategory.value) {
-      response = await updateCategory(currentCategoryId.value, {
-        name: categoryForm.value.name
-      })
-    } else {
-      response = await submitCategory(categoryForm.value)
-    }
-
-    if (response.success) {
-      successMessage.value = isEditingCategory.value
-        ? 'Categoría actualizada correctamente'
-        : 'Categoría creada correctamente'
-      await getCategories()
-      setTimeout(() => dialogCategory.value = false, 1500)
-    } else {
-      errorMessage.value = response.message || 'Error al procesar la categoría'
-    }
-  } catch (error) {
-    errorMessage.value = error.message || 'Error inesperado al enviar el formulario'
-    console.error("Error completo:", error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// Eliminar categoria
+// Eliminar Categoría
 const handleDeleteCategory = async (categoryId) => {
+  isLoading.value = true
   try {
     const response = await deleteCategory(categoryId)
     if (response.success) {
-      successMessage.value = response.message || 'Subcategoría eliminada correctamente'
-      await getCategories()
+      giveMeASnack({
+        message: 'Categoría eliminada correctamente',
+        color: 'success'
+      })
       dialogConfirmDeleteCategory.value = false
-    } else {
-      errorMessage.value = response.message || 'Error al eliminar subcategoría'
-    }
-  } catch (error) {
-    errorMessage.value = 'Error inesperado al eliminar subcategoría'
-    console.error("Error completo:", error)
-  }
-}
-
-// Submit para subcategorías
-const handleSubmitSubcategory = async () => {
-  errorMessage.value = null
-  successMessage.value = null
-  isLoading.value = true
-
-  try {
-    if (!subcategoryForm.value.name.trim()) {
-      throw new Error('El nombre de la subcategoría es requerido')
-    }
-
-    const payload = {
-      name: subcategoryForm.value.name,
-      category_id: subcategoryForm.value.category_id
-    }
-
-    let response
-    if (isEditingSubcategory.value) {
-      response = await updateSubcategory(currentSubcategoryId.value, payload)
-    } else {
-      response = await submitSubcategory(payload)
-    }
-
-    if (response.success) {
-      successMessage.value = isEditingSubcategory.value
-        ? 'Subcategoría actualizada correctamente'
-        : 'Subcategoría creada correctamente'
       await getCategories()
-      setTimeout(() => dialogSubcategory.value = false, 1500)
     } else {
-      errorMessage.value = response.message || 'Error al procesar la subcategoría'
+      giveMeASnack({
+        message: 'Error al eliminar categoría',
+        color: 'error'
+      })
     }
   } catch (error) {
-    errorMessage.value = error.message || 'Error inesperado al enviar el formulario'
+    giveMeASnack({
+      message: 'Error inesperado al eliminar categoría',
+      color: 'error'
+    })
     console.error("Error completo:", error)
-  } finally {
-    isLoading.value = false
   }
+  isLoading.value = false
 }
 
 // Eliminar subcategoría
 const handleDeleteSubcategory = async (subcategoryId) => {
+  isLoading.value = true
   try {
     const response = await deleteSubcategory(subcategoryId)
     if (response.success) {
-      successMessage.value = response.message || 'Subcategoría eliminada correctamente'
+      giveMeASnack({
+        message: "Subcategoría eliminada correctamente",
+        color: 'error'
+      })
       await getCategories()
       dialogConfirmDeleteSubcategory.value = false
     } else {
+      giveMeASnack({
+        message: "Error al eliminar la subcategoría",
+        color: 'error'
+      })
       errorMessage.value = response.message || 'Error al eliminar subcategoría'
     }
   } catch (error) {
-    errorMessage.value = 'Error inesperado al eliminar subcategoría'
+    giveMeASnack({
+      message: "Error al eliminar la subcategoría",
+      color: 'error'
+    })
     console.error("Error completo:", error)
   }
+  isLoading.value = false
+  cancelDelete()
+  getCategories()
 }
 
-// Reset forms
-const resetForms = () => {
-  categoryForm.value = { name: '' }
-  subcategoryForm.value = { name: '', category_id: null }
+const subcategoryToDelete = ref(null)
+const categoryToDelete = ref(null)
+
+const openDeleteCategoryDialog = (subcategory) => {
+  categoryToDelete.value = subcategory
+  dialogConfirmDeleteCategory.value = true
 }
+
+const cancelDelete = () => {
+  dialogConfirmDeleteSubcategory.value = false
+  dialogConfirmDeleteCategory.value = false
+  subcategoryToDelete.value = false;
+}
+
+const closeCategoryDialog = (success) => {
+  dialogCategory.value = false
+  success ? getCategories() : null
+}
+
+const selectedSubCategory = ref(null)
+const selectedCategoryId = ref(null)
+const showSubcategoryDialog = (categoryId, subcategory = null) => {
+  selectedCategoryId.value = categoryId,
+    selectedSubCategory.value = subcategory
+  dialogSubcategory.value = true
+}
+
+const hideSubcategoryDialog = (success) => {
+  selectedCategoryId.value = null
+  selectedSubCategory.value = null
+  dialogSubcategory.value = false
+  success ? getCategories() : null
+}
+
 </script>
 
 <template>
-  <container>
-    <VCard class="pa-10">
+  <div class="d-flex w-100 h-100 justify-center">
+    <VCard style="max-width: 1000px;" class="pa-md-3" :loading="isLoading" :disabled="isLoading">
       <!-- Sección de Categorías -->
-      <v-row>
-        <v-col cols="12" sm="6">
-          <v-card-title class="text-h4 font-weight-thin">Categorías</v-card-title>
-        </v-col>
-        <v-col class="d-flex justify-end" cols="12" sm="6">
-          <v-dialog v-model="dialogCategory" max-width="500" @after-leave="resetForms">
-            <template v-slot:activator="{ props: activatorProps }">
-              <v-btn v-bind="activatorProps" text="Agregar" variant="flat" @click="openDialogCategory()"></v-btn>
-            </template>
-            <v-card :title="isEditingCategory ? 'Editar Categoría' : 'Nueva Categoría'">
-              <v-card-text>
-                <v-form @submit.prevent="handleSubmitCategory">
-                  <v-text-field v-model="categoryForm.name" label="Nombre de la categoría" required
-                    class="mb-4"></v-text-field>
-
-                  <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4">
-                    {{ errorMessage }}
-                  </v-alert>
-
-                  <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4">
-                    {{ successMessage }}
-                  </v-alert>
-                </v-form>
-              </v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn text="Cancelar" variant="text" @click="dialogCategory = false"></v-btn>
-                <v-btn :loading="isLoading" :text="isEditingCategory ? 'Actualizar' : 'Crear'" variant="flat"
-                  color="primary" @click="handleSubmitCategory"></v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-dialog>
-        </v-col>
-      </v-row>
+      <v-card-title class="pt-5 d-flex justify-space-between align-center">
+        <v-card-title class="text-h3">Categorías</v-card-title>
+        <v-btn v-if="!isMobile" v-model="dialogCategory" prepend-icon="ri-add-line" variant="flat" class="mr-3"
+          @click="openDialogCategory()">Añadir
+        </v-btn>
+        <v-btn v-else v-model="dialogCategory" variant="flat" icon="ri-add-line" @click="openDialogCategory()"></v-btn>
+        <v-dialog v-model="dialogCategory" max-width="400">
+          <add-category :category="selectedCategory" @close="(success) => closeCategoryDialog(success)"></add-category>
+        </v-dialog>
+      </v-card-title>
 
       <VCardText>
         <div>
@@ -264,39 +205,15 @@ const resetForms = () => {
             <v-expansion-panel v-for="category in categories" :key="category.id">
               <template #title>
                 <div class="d-flex align-center justify-space-between w-100">
-                  <div class="text-h4 font-weight-thin">
+                  <div class="text-h5 text-md-h5" style="font-weight: 400; color: hsla(0, 0%, 0%, 0.6);">
                     {{ category.name }}
                   </div>
                   <div class="d-flex justif-center mx-1">
-                    <v-btn density="comfortable" icon variant="text" color="warning"
-                      @click.stop="openDialogCategory(category)">M</v-btn>
-
-                    <v-btn @click="dialogConfirmDeleteCategory = true" icon density="comfortable" variant="text"
-                      color="error">
-                      D
+                    <v-btn :size="isMobile ? 'small' : 'medium'" icon="ri-edit-box-line" variant="text"
+                      @click.stop="openDialogCategory(category)"></v-btn>
+                    <v-btn :size="isMobile ? 'small' : 'medium'" @click.stop="openDeleteCategoryDialog(category)"
+                      icon="ri-delete-bin-line" variant="text" color="error">
                     </v-btn>
-
-                    <!-- Dialog de confirmacion de eliminacion de Categorias -->
-                    <v-dialog v-model="dialogConfirmDeleteCategory" width="auto">
-                      <v-card class="pa-5" max-width="400" title="Confirmar eliminar">
-                        <v-card-text>
-                          ¿Está seguro de eliminar "{{ category.name }}" y todos sus elementos asociados?
-                        </v-card-text>
-                        <template v-slot:actions>
-                          <v-row>
-                            <v-col cols="12">
-                              <v-btn variant="text" block color="error"
-                                @click.stop="handleDeleteCategory(category.id)">Eliminar</v-btn>
-                            </v-col>
-                            <v-col cols="12">
-                              <v-btn @click="dialogConfirmDeleteCategory = false" block variant="text">
-                                Cancelar
-                              </v-btn>
-                            </v-col>
-                          </v-row>
-                        </template>
-                      </v-card>
-                    </v-dialog>
 
                   </div>
 
@@ -304,93 +221,90 @@ const resetForms = () => {
               </template>
 
               <template #text>
-                <v-list>
-                  <v-row class="mx-5">
-                    <v-col cols="12" sm="6">
-                      <div class="text-h6 font-weight-thin">
-                        Subcategorías
-                      </div>
-                    </v-col>
-                    <v-col class="d-flex justify-end" cols="12" sm="6">
-                      <v-dialog v-model="dialogSubcategory" max-width="500" @after-leave="resetForms">
-                        <template v-slot:activator="{ props: activatorProps }">
-                          <v-btn v-bind="activatorProps" size="x-small" text="Agregar"
-                            @click="openDialogSubcategory(null, category.id)"></v-btn>
-                        </template>
-                        <v-card :title="isEditingSubcategory ? 'Editar Subcategoría' : 'Nueva Subcategoría'">
-                          <v-card-text>
-                            <v-form @submit.prevent="handleSubmitSubcategory">
-                              <v-text-field v-model="subcategoryForm.name" label="Nombre de la subcategoría" required
-                                class="mb-4"></v-text-field>
-
-                              <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4">
-                                {{ errorMessage }}
-                              </v-alert>
-
-                              <v-alert v-if="successMessage" type="success" variant="tonal" class="mb-4">
-                                {{ successMessage }}
-                              </v-alert>
-                            </v-form>
-                          </v-card-text>
-                          <v-card-actions>
-                            <v-spacer></v-spacer>
-                            <v-btn text="Cancelar" variant="text" @click="dialogSubcategory = false"></v-btn>
-                            <v-btn :loading="isLoading" :text="isEditingSubcategory ? 'Actualizar' : 'Crear'"
-                              variant="flat" color="primary" @click="handleSubmitSubcategory"></v-btn>
-                          </v-card-actions>
-                        </v-card>
-                      </v-dialog>
-                    </v-col>
+                <v-list style="overflow-x: hidden;">
+                  <v-row class="px-5 my-3 d-flex justify-space-between align-center">
+                    <div class="text-h6 text-md-h6">
+                      Subcategorías
+                    </div>
+                    <v-btn v-if="!isMobile" v-model="dialogSubcategory" class="rounded" text="Añadir"
+                      prepend-icon="ri-add-line" @click="showSubcategoryDialog(category.id, null)"></v-btn>
+                    <v-btn v-else v-model="dialogSubcategory" size="small" icon="ri-add-line"
+                      @click="showSubcategoryDialog(category.id, null)"></v-btn>
                   </v-row>
-                  <v-divider inset class="mt-1"></v-divider>
+                  <v-divider inset class="my-2" style="max-width: 100% !important; margin-inline-start: 0;"></v-divider>
 
                   <!-- Lista de subcategorías -->
                   <v-list-item v-for="subcategory in category.subcategories" :key="subcategory.id"
-                    :title="subcategory.name" :value="subcategory.id">
-                    <template v-slot:append>
-                      <div class="pa-2">
-                        <v-btn density="compact" variant="text" color="warning" icon
-                          @click.stop="openDialogSubcategory(subcategory, category.id)">M</v-btn>
-
-                        <v-btn @click="dialogConfirmDeleteSubcategory = true" icon density="comfortable" variant="text"
-                          color="error">
-                          D
-                        </v-btn>
-
-                        <!-- Dialog de confirmacion de eliminacion de Subcategorias -->
-                        <v-dialog v-model="dialogConfirmDeleteSubcategory" width="auto">
-                          <v-card class="pa-5" max-width="400" title="Confirmar eliminar">
-                            <v-card-text>
-                              ¿Está seguro de eliminar "{{ subcategory.name }}" y todos sus elementos asociados?
-                            </v-card-text>
-                            <template v-slot:actions>
-                              <v-row>
-                                <v-col cols="12">
-                                  <v-btn variant="text" block color="error"
-                                    @click.stop="handleDeleteSubcategory(subcategory.id)">Eliminar</v-btn>
-                                </v-col>
-                                <v-col cols="12">
-                                  <v-btn @click="dialogConfirmDeleteSubcategory = false" block variant="text">
-                                    Cancelar
-                                  </v-btn>
-                                </v-col>
-                              </v-row>
-                            </template>
-                          </v-card>
-                        </v-dialog>
-
-
+                    :value="subcategory.id">
+                    <template v-slot>
+                      <div class="px-md-2 d-flex align-center" style="justify-content: space-between; width: 100%;">
+                        <!-- Contenedor del texto, se ajusta al espacio disponible y envuelve el contenido -->
+                        <div style="flex: 1; word-break: break-word; white-space: normal;">
+                          <span class="text-body-1 text-md-h6" style="color: hsla(0, 0%, 0%, 0.6);">
+                            {{ subcategory.name }}
+                          </span>
+                        </div>
+                        <!-- Contenedor de los botones, sin permitir wrap -->
+                        <div style="white-space: nowrap; margin-left: 8px;">
+                          <v-btn density="compact" size="medium" variant="text" color="" icon="ri-edit-box-line"
+                            @click.stop="showSubcategoryDialog(category.id, subcategory)">
+                          </v-btn>
+                          <v-btn @click="showSubcategoryDialog(category.id, subcategory)" icon="ri-delete-bin-line"
+                            density="comfortable" variant="text" color="error">
+                          </v-btn>
+                        </div>
                       </div>
                     </template>
+
                   </v-list-item>
+
+
                 </v-list>
               </template>
             </v-expansion-panel>
           </v-expansion-panels>
         </div>
       </VCardText>
+
+      <!-- Dialog de agregar subcategoría -->
+      <v-dialog v-model="dialogSubcategory" max-width="400">
+        <add-subcategory :subcategory="selectedSubCategory" :categoryId="selectedCategoryId"
+          @close="(success) => hideSubcategoryDialog(success)"></add-subcategory>
+      </v-dialog>
+
+
+      <!-- Dialog de confirmacion de eliminacion de Categorías -->
+      <v-dialog v-model="dialogConfirmDeleteCategory" width="auto">
+        <v-card class="pa-5" max-width="400" title="Confirmar eliminar">
+          <v-card-text>
+            ¿Está seguro de eliminar "{{ categoryToDelete.name }}" y todos sus elementos asociados?
+          </v-card-text>
+          <v-card-actions class="d-flex justify-end gap-3">
+            <v-btn :loading="isLoading" @click="cancelDelete" variant="outlined">
+              Cancelar
+            </v-btn>
+            <v-btn :loading="isLoading" variant="elevated" color="error"
+              @click.stop="handleDeleteCategory(categoryToDelete.id)">Eliminar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Dialog de confirmacion de eliminacion de subcategorías -->
+      <v-dialog v-model="dialogConfirmDeleteSubcategory" width="auto">
+        <v-card class="pa-5" max-width="400" title="Confirmar eliminar">
+          <v-card-text>
+            ¿Está seguro de eliminar "{{ subcategoryToDelete.name }}" y todos sus elementos asociados?
+          </v-card-text>
+          <v-card-actions class="d-flex justify-end gap-3">
+            <v-btn :loading="isLoading" @click="cancelDelete()" variant="outlined">
+              Cancelar
+            </v-btn>
+            <v-btn :loading="isLoading" variant="elevated" color="error"
+              @click.stop="handleDeleteSubcategory(subcategoryToDelete.id)">Eliminar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </VCard>
+  </div>
 
-
-  </container>
 </template>

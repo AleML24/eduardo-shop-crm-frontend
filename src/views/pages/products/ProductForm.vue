@@ -1,19 +1,22 @@
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed, onMounted, inject } from 'vue';
+import ConfirmDeleteDialog from '@/pages/components/ConfirmDeleteDialog.vue';
 import {
   fetchNextProductCode,
   submitProduct,
   fetchCategories,
   fetchSubcategories,
   fetchProductById,
-  updateProduct
+  updateProduct,
+  deleteProduct
 } from './ProductForm';
 import { PRODUCT_ACTIONS } from '@/constants/products';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useImageStore } from '@/@core/stores/images'
 const imageStore = useImageStore()
-
+import AddSubcategory from '@/pages/components/AddSubcategory.vue';
+import AddCategory from '@/pages/components/AddCategory.vue';
 // Definición de props del componente
 const props = defineProps({
   productId: {
@@ -26,6 +29,8 @@ const props = defineProps({
     validator: value => Object.values(PRODUCT_ACTIONS).includes(value)
   }
 });
+
+const giveMeASnack = inject('Snackbar:giveMeASnack')
 
 // Definición de emits del componente
 const validForm = ref(true);
@@ -44,6 +49,7 @@ const formData = ref({
   description: null,
   price: null,
   amount: null,
+  saled: 0,
   state: states.value[0], // 'disponible'
   dimension: null,
   weight: null,
@@ -56,17 +62,20 @@ const formData = ref({
 // Estados de la UI
 const isLoading = ref(false);
 const errorMessage = ref(null);
-const successMessage = ref(null);
-const visible = ref(false);
+const visible = ref(true);
 const destacated = ref(false);
 
+const showConfirmDelete = ref(false)
+const toogleShowConfirmDelete = () => {
+  showConfirmDelete.value = !showConfirmDelete.value
+}
+
+
 /**
- * Carga los datos iniciales necesarios para el formulario
- */
+* Carga los datos iniciales necesarios para el formulario
+*/
 const loadInitialData = async () => {
   try {
-    errorMessage.value = null;
-    successMessage.value = null;
 
     // Solo cargar código para creación de productos
     if (props.action === PRODUCT_ACTIONS.CREATE) {
@@ -74,11 +83,17 @@ const loadInitialData = async () => {
       if (codeResponse.success) {
         formData.value.code = codeResponse.data.next_code;
       } else {
-        errorMessage.value = codeResponse.message;
+        giveMeASnack({
+          message: codeResponse.message,
+          color: 'error'
+        })
       }
     }
   } catch (error) {
-    errorMessage.value = "Error al cargar datos iniciales";
+    giveMeASnack({
+      message: "Error al cargar los datos iniciales",
+      color: 'error'
+    })
     console.error(error);
   }
 };
@@ -90,21 +105,26 @@ const loadCategories = async () => {
     if (catResponse.success) {
       categories.value = catResponse.data;
     } else {
-      errorMessage.value = catResponse.message || "Error al cargar categorías";
+      giveMeASnack({
+        message: catResponse.message || "Error al cargar categorías",
+        color: 'error'
+      })
     }
   } catch (error) {
-    errorMessage.value = "Error al cargar categorías";
+    giveMeASnack({
+      message: "Error al cargar categorías",
+      color: 'error'
+    })
     console.error(error);
   }
 };
 
 /**
- * Carga los datos de un producto existente para edición/visualización
- */
+* Carga los datos de un producto existente para edición/visualización
+*/
 const loadProductById = async () => {
   try {
     isLoading.value = true;
-    errorMessage.value = null;
 
     const productResponse = await fetchProductById(props.productId);
     if (productResponse.success) {
@@ -129,10 +149,16 @@ const loadProductById = async () => {
         }
       }
     } else {
-      errorMessage.value = productResponse.message || "Error al cargar el producto";
+      giveMeASnack({
+        message: productResponse.message || "Error al cargar el producto",
+        color: 'error'
+      })
     }
   } catch (error) {
-    errorMessage.value = "Error inesperado al cargar el producto";
+    giveMeASnack({
+      message: "Error inesperado al cargar el producto",
+      color: 'error'
+    })
     console.error(error);
   } finally {
     isLoading.value = false;
@@ -153,8 +179,11 @@ onMounted(async () => {
       await loadProductById();
     }
   } catch (error) {
+    giveMeASnack({
+      message: "Error al inicializar el formulario",
+      color: 'error'
+    })
     console.error("Error en carga inicial:", error);
-    errorMessage.value = "Error al inicializar el formulario";
   }
 });
 
@@ -182,12 +211,18 @@ const handleMainButtonClick = async () => {
   } else if (btnTitle.value !== 'Editar') {
 
     if (!(await form.value.validate()).valid) {
+      giveMeASnack({
+        message: "Hay campos del formulario que no son válidos",
+        color: 'error'
+      })
       return false
     }
-    const success = await handleSubmit();
-    if (success) {
+    const response = await handleSubmit();
+    console.log(response);
+
+    if (response?.success) {
       imageStore.clearImages()
-      router.push(`/products/details/${props.productId}`);
+      router.push(`/products/details/${response.data.product_id}`);
     }
   }
 };
@@ -212,22 +247,26 @@ watch(() => formData.value.category_id, async (newVal, oldVal) => {
         }
       }
     } catch (error) {
+      giveMeASnack({
+        message: "Error al cargar las subcategorías ",
+        color: 'error'
+      })
       console.error("Error loading subcategories:", error);
     }
   }
 }, { immediate: true });
 
 /**
- * Maneja la eliminación de campos de color
- * @param {number} index - Índice del color a eliminar
- */
+* Maneja la eliminación de campos de color
+* @param {number} index - Índice del color a eliminar
+*/
 const removeColor = (index) => {
   formData.value.color.splice(index, 1);
 };
 
 /**
- * Resetea el formulario a sus valores iniciales
- */
+* Resetea el formulario a sus valores iniciales
+*/
 const resetForm = async () => {
   formData.value = {
     code: null,
@@ -235,6 +274,7 @@ const resetForm = async () => {
     description: '',
     price: 0,
     amount: 0,
+    saled: 0,
     state: 'disponible',
     dimension: '',
     weight: 0,
@@ -256,12 +296,10 @@ const resetForm = async () => {
 };
 
 /**
- * Maneja el envío del formulario (creación o actualización)
- */
+* Maneja el envío del formulario (creación o actualización)
+*/
 const handleSubmit = async () => {
   isLoading.value = true;
-  errorMessage.value = null;
-  successMessage.value = null;
 
   try {
     // Preparar datos para enviar
@@ -269,7 +307,7 @@ const handleSubmit = async () => {
       ...formData.value,
       price: parseFloat(formData.value.price),
       amount: parseInt(formData.value.amount),
-      weight: formData.value.weight + " " + tipoPeso.value,
+      weight: formData.value.weight ? formData.value.weight + " " + tipoPeso.value : null,
       visible: visible.value,
       destacated: destacated.value,
       images: imageStore.images.map(img => ({
@@ -280,35 +318,51 @@ const handleSubmit = async () => {
       }))
     };
 
-    let response;
+    let response = null;
     if (props.productId) {
       // Actualización de producto existente
       response = await updateProduct(props.productId, payload);
       if (response.success) {
-        successMessage.value = response.message || 'Producto actualizado exitosamente';
+        giveMeASnack({
+          message: response.message || 'Producto actualizado exitosamente',
+          color: 'success'
+        })
         // Recargar datos actualizados
         await loadProductById();
+        isLoading.value = false;
+        return response
       }
     } else {
       // Creación de nuevo producto
       response = await submitProduct(payload);
 
       if (response.success) {
-        successMessage.value = response.message || 'Producto creado exitosamente';
+        giveMeASnack({
+          message: response.message || 'Producto creado exitosamente',
+          color: 'success'
+        })
         resetForm();
+        isLoading.value = false;
+        return response
       }
     }
 
     if (!response.success) {
-      errorMessage.value = response.message || "Error al procesar el producto";
+      giveMeASnack({
+        message: response.message || "Error al procesar el producto",
+        color: 'error'
+      })
     }
   } catch (error) {
-    errorMessage.value = error.message || "Error inesperado al enviar el formulario";
+    giveMeASnack({
+      message: errorMessage.value = error.message || "Error inesperado al enviar el formulario",
+      color: 'error'
+    })
     console.error(error);
   } finally {
     isLoading.value = false;
-    return !errorMessage.value
   }
+  return false
 };
 
 const addColorDialog = ref(false)
@@ -324,35 +378,39 @@ const addNewColor = () => {
   }
 }
 // Eliminar producto
-const handleDeleteProduct = async (productId) => {
+const handleDeleteProduct = async () => {
+  isLoading.value = true
   try {
-    const response = await deleteProduct(productId)
+    toogleShowConfirmDelete()
+    const response = await deleteProduct(props.productId)
     if (response.success) {
-      successMessage.value = response.message || 'Producto eliminado correctamente'
-      await getProducts()
-      // dialogConfirmDeleteSubcategory.value = false
+      giveMeASnack({
+        message: "Producto eliminado correctamente",
+        color: 'success'
+      })
+      router.push('/products')
     } else {
-      errorMessage.value = response.message || 'Error al eliminar producto'
+      giveMeASnack({
+        message: errorMessage.value = response.message || 'Error al eliminar producto',
+        color: 'error'
+      })
     }
   } catch (error) {
-    errorMessage.value = 'Error inesperado al eliminar producto'
+    giveMeASnack({
+      message: errorMessage.value = 'Error inesperado al eliminar producto',
+      color: 'error'
+    })
     console.error("Error completo:", error)
   }
+  isLoading.value = false
 }
-
-const weightUnits = [
-  { title: 'Kilogramo (kg)', value: 'kg' },
-  { title: 'Gramo (g)', value: 'g' },
-  { title: 'Tonelada (t)', value: 't' },
-  { title: 'Libra (lb)', value: 'lb' }
-];
 
 const rules = {
   required: [
     v => v !== null && v !== undefined && v !== '' || 'El campo es obligatorio',
   ],
   numeric: [
-    v => v === '' || /^-?\d+(\.\d+)?$/.test(v) || "El campo debe ser un número válido",
+    v => v == null || v === '' || /^-?\d+(\.\d+)?$/.test(v) || "El campo debe ser un número válido",
   ],
   string: [
     v => typeof v === 'string' && v.trim().length > 0 || 'El campo debe ser una cadena de texto no vacía',
@@ -360,43 +418,47 @@ const rules = {
 
 };
 
+const dialogSubcategory = ref(false)
+const showCategoryDialog = ref(false)
+const toggleCategoryDialog = (success = null) => {
+  showCategoryDialog.value = !showCategoryDialog.value
+  success ? loadCategories() : null
+}
+
+const toggleSubcategoryDialog = async (success = null) => {
+  dialogSubcategory.value = !dialogSubcategory.value
+  if (success) {
+    subcategories.value = (await fetchSubcategories(formData.value.category_id)).data
+  }
+}
 </script>
+
 
 <template>
   <div>
     <v-form @submit.prevent="handleMainButtonClick" ref="form">
-      <div class="d-flex justify-md-space-between mb-6">
-        <div class="d-flex justify-center">
-          <h4 class="text-h4"> {{ title }} </h4>
-        </div>
+      <v-row class="mb-6">
+        <v-col cols="12" md="8">
+          <h4 class="text-h4 text-md-h3"> {{ title }} </h4>
+        </v-col>
 
-        <div class="d-flex gap-2 align-center justify-center">
+        <v-col cols="12" md="4" class="d-flex gap-2 justify-start justify-md-end ">
           <VBtn v-if="props.action != 'SHOW'" variant="outlined" @click="router.go(-1)" color="secondary">Cancelar
           </VBtn>
           <VBtn v-else variant="outlined" prepend-icon="ri-arrow-left-line" @click="router.push('/products')"
             color="secondary">Atrás
           </VBtn>
-          <v-btn v-if="props.action == 'EDIT'" color="error" prepend-icon="ri-delete-bin-line"
-            @click="handleDeleteProduct(item.id)">Eliminar</v-btn>
+          <v-btn v-if="props.action == 'SHOW'" color="error" prepend-icon="ri-delete-bin-line"
+            @click="toogleShowConfirmDelete" :loading="isLoading">Eliminar</v-btn>
           <VBtn @click="handleMainButtonClick" :type="props.action != 'EDIT' ? 'submit' : 'button'"
             prepend-icon="ri-edit-box-line" :loading="isLoading" :disabled="isLoading">
             {{ btnTitle }}
           </VBtn>
-        </div>
-      </div>
-
-      <!-- Mensajes de estado -->
-      <VAlert v-if="errorMessage" type="error" class="mb-4">
-        {{ errorMessage }}
-      </VAlert>
-
-      <VAlert v-if="successMessage" type="success" class="mb-4">
-        {{ successMessage }}
-      </VAlert>
-
+        </v-col>
+      </v-row>
 
       <VRow>
-        <VCol md="8">
+        <VCol cols="12" md="8">
           <!-- 👉 Información del Producto -->
           <VCard class="mb-6" title="Información del Producto">
             <VCardText>
@@ -412,31 +474,28 @@ const rules = {
 
                 <VCol cols="12" md="4">
                   <VTextField v-model="formData.price" label="Precio*" :readonly="!canWrite" :rules="[
-                    ...rules.required, ...rules.numeric,
+                    ...rules.numeric,
                     v => v >= 0 || 'El precio no puede ser negativo'
                   ]" />
                 </VCol>
                 <VCol cols="12">
                   <v-textarea :readonly="!canWrite" label="Descripción" v-model="formData.description"
                     variant="outlined" placeholder="Descripción detallada del producto..." class="mt-1 rounded"
-                    :rules="[...rules.required]" auto-grow></v-textarea>
+                    auto-grow></v-textarea>
 
                 </VCol>
 
 
                 <VCol cols="12" md="6">
-                  <VTextField v-model="formData.amount" label="Cantidad Total*":readonly="!canWrite"
-                    :rules="[
-                      ...rules.required, ...rules.numeric,
-                      v => v >= 0 || 'La cantidad no puede ser negativa'
-                    ]" />
+                  <VTextField v-model="formData.amount" label="Cantidad Total*" :readonly="!canWrite" :rules="[
+                    ...rules.required, ...rules.numeric,
+                    v => v >= 0 || 'La cantidad no puede ser negativa'
+                  ]" />
                 </VCol>
                 <VCol cols="12" md="6">
-                  <VTextField v-model="formData.amount" label="Cantidad Vendida" :readonly="!canWrite"
-                    :rules="[
-                      ...rules.required, ...rules.numeric,
-                      v => v >= 0 || 'La cantidad no puede ser negativa'
-                    ]" />
+                  <VTextField v-model="formData.saled" label="Cantidad Vendida" :readonly="!canWrite" :rules="[
+                    ...rules.numeric,
+                  ]" />
                 </VCol>
 
                 <VCol cols="12" md="6">
@@ -451,7 +510,7 @@ const rules = {
 
                 <VCol cols="12" md="6">
                   <VTextField v-model="formData.weight" label="Peso y Unidad de Medida" :readonly="!canWrite"
-                    :rules="[...rules.required, ...rules.numeric]" />
+                    :rules="[...rules.required]" />
                 </VCol>
 
                 <VCol cols="12" md="6">
@@ -493,31 +552,37 @@ const rules = {
             </VCardText>
           </VCard>
 
-          <!-- 👉 Imágenes del Producto -->
-          <VCard class="mb-6" title="Imágenes del Producto">
-            <VCardText>
-              <DropZone :images="formData.images" :readonly="props.action == 'SHOW' ? true : false" />
-            </VCardText>
-          </VCard>
+
         </VCol>
 
-        <VCol md="4">
+        <VCol cols="12" md="4">
           <!-- 👉 Organización -->
           <VCard title="Organización" class="mb-6">
             <VCardText>
               <div class="d-flex flex-column gap-y-4">
-                <div>
-                  <!-- Tu select de categorías -->
-                  <VSelect v-model="formData.category_id" label="Categoría*" :items="categories" item-title="title"
-                    item-value="value" :rules="[...rules.required]" :readonly="!canWrite" clearable
+                <div class="d-flex justify-between align-center gap-3">
+                  <VAutocomplete v-model="formData.category_id" label="Categoría*" :items="categories"
+                    item-title="title" item-value="value" :rules="[...rules.required]" :readonly="!canWrite" clearable
                     :disabled="isLoading" />
+                  <v-btn v-if="props.action != 'SHOW'" color="primary" @click="toggleCategoryDialog"
+                    icon="ri-add-line"></v-btn>
                 </div>
-
-                <VSelect :readonly="!canWrite" v-model="formData.subcategory_id" label="Subcategoría*"
-                  :items="subcategories" item-title="title" item-value="value" :disabled="!formData.category_id"
-                  :rules="[...rules.required]" clearable />
+                <div class="d-flex justify-between align-center gap-3">
+                  <VAutocomplete v-model="formData.subcategory_id" label="Subcategoría*" :items="subcategories"
+                    item-title="title" item-value="value" :rules="[...rules.required]" :readonly="!canWrite" clearable
+                    :disabled="!formData.category_id" />
+                  <v-btn v-if="props.action != 'SHOW'" color="primary" icon="ri-add-line"
+                    :disabled="!formData.category_id" @click="toggleSubcategoryDialog"></v-btn>
+                </div>
               </div>
             </VCardText>
+            <v-dialog v-model="showCategoryDialog" max-width="400">
+              <add-category @close="(success) => toggleCategoryDialog(success)"></add-category>
+            </v-dialog>
+            <v-dialog v-model="dialogSubcategory" max-width="400">
+              <add-subcategory :categoryId="formData.category_id"
+                @close="(success) => toggleSubcategoryDialog(success)"></add-subcategory>
+            </v-dialog>
           </VCard>
 
           <VCard class="mb-6">
@@ -527,8 +592,19 @@ const rules = {
             </VCardText>
           </VCard>
         </VCol>
+        <v-col cols="12" md="8">
+          <!-- 👉 Imágenes del Producto -->
+          <VCard class="mb-6" title="Imágenes del Producto">
+            <VCardText>
+              <DropZone :images="formData.images" :readonly="props.action == 'SHOW' ? true : false" />
+            </VCardText>
+          </VCard>
+        </v-col>
       </VRow>
     </v-form>
+    <v-dialog v-model="showConfirmDelete" max-width="500">
+      <confirm-delete-dialog @cancel="toogleShowConfirmDelete()" @confirm="handleDeleteProduct"></confirm-delete-dialog>
+    </v-dialog>
   </div>
 </template>
 

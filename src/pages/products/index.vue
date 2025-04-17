@@ -1,12 +1,18 @@
   <script setup>
   import { onMounted, ref, watch } from 'vue'
   import { $axios } from '../../utils/api'
-  import { fetchFilters, fetchProducts, updateProduct, deleteProduct } from './index'
+  import { fetchFilters, fetchProducts, updateProduct } from './index'
   import { debounce } from 'lodash';
   import { onClickOutside } from '@vueuse/core';
   import { useRouter } from 'vue-router';
   import { useImageStore } from '@/@core/stores/images';
+  import { useDisplay } from 'vuetify'
+  const { mobile } = useDisplay() // Obtiene las propiedades de pantalla
 
+  const giveMeASnack = inject('Snackbar:giveMeASnack')
+
+  // Puedes definir una propiedad que determine si el dispositivo es móvil 
+  const isMobile = computed(() => mobile.value)
 
   //data table
   const headers = ref([
@@ -58,7 +64,10 @@
       const currentProduct = products.value.find(p => p.id === product.id);
 
       if (!currentProduct) {
-        throw new Error('Producto no encontrado');
+        giveMeASnack({
+          message: "Producto no encontrado",
+          color: 'error'
+        })
       }
 
       // Cambio optimista
@@ -69,7 +78,10 @@
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        giveMeASnack({
+          message: response.message,
+          color: 'error'
+        })
       }
 
       // Actualizar con datos del servidor
@@ -81,7 +93,10 @@
       if (productToRevert) {
         productToRevert.destacated = !newValue;
       }
-      alert(error.message || 'Error al actualizar');
+      giveMeASnack({
+        message: error?.message || "Error al actualizar",
+        color: 'error'
+      })
       console.error(error);
     }
   };
@@ -94,7 +109,10 @@
       const currentProduct = products.value.find(p => p.id === product.id);
 
       if (!currentProduct) {
-        throw new Error('Producto no encontrado');
+        giveMeASnack({
+          message: "Producto no encontrado",
+          color: 'error'
+        })
       }
 
       // Cambio optimista
@@ -105,7 +123,10 @@
       });
 
       if (!response.success) {
-        throw new Error(response.message);
+        giveMeASnack({
+          message: response.message,
+          color: 'error'
+        })
       }
 
       // Actualizar con datos del servidor
@@ -117,7 +138,10 @@
       if (productToRevert) {
         productToRevert.visible = !newValue;
       }
-      alert(error.message || 'Error al actualizar');
+      giveMeASnack({
+        message: error?.message || "Error al actualizar",
+        color: 'error'
+      })
       console.error(error);
     }
   };
@@ -154,7 +178,10 @@
       if (productToRevert) {
         productToRevert.saled_modified = product.saled; // Revertir al valor original
       }
-      console.error("Error al actualizar cantidad:", error);
+      giveMeASnack({
+        message: "Error al actualizar la cantidad",
+        color: 'error'
+      })
     }
   };
 
@@ -197,7 +224,10 @@
     )
 
     if (!response.success) {
-      alert(response.message)
+      giveMeASnack({
+        message: response.message,
+        color: 'error'
+      })
       return
     }
 
@@ -216,7 +246,10 @@
     const response = await fetchFilters()
 
     if (!response.success) {
-      alert(response.message)
+      giveMeASnack({
+        message: response.message,
+        color: 'error'
+      })
       return
     }
 
@@ -324,8 +357,8 @@
           </VRow>
           <VRow>
             <!-- 👉 Select Destacado -->
-            <VCol cols="12" sm="6" class="d-flex justify-center align-center">
-              <VLabel class="mr-5" style="min-inline-size: min-content;">
+            <VCol cols="12" sm="6" class="d-flex flex-column flex-sm-row justify-center align-center">
+              <VLabel class="mr-sm-5 mb-2 mb-sm-0" style="min-inline-size: min-content;">
                 Productos Visibles
               </VLabel>
               <VBtnToggle density="compact" v-model="selectedVisible" class="filter-button-group"
@@ -345,8 +378,8 @@
             </VCol>
             <!-- 👉 Select Visible -->
 
-            <VCol cols="12" sm="6" class="d-flex justify-center align-center">
-              <VLabel class="mr-5" style="min-inline-size: min-content;">
+            <VCol cols="12" sm="6" class="d-flex flex-column flex-sm-row justify-center align-center">
+              <VLabel class="mr-sm-5 mb-2 mb-sm-0" style="min-inline-size: min-content;">
                 Productos Destacados
               </VLabel>
               <VBtnToggle density="compact" v-model="selectedDestacated" class="filter-button-group"
@@ -377,7 +410,7 @@
                 prepend-inner-icon="ri-search-line" clearable />
             </VCol>
             <VCol class="d-flex w-100 justify-end" cols="12" sm="6">
-              <VBtn color="primary" prepend-icon="ri-add-line" @click="$router.push('/products/add')">
+              <VBtn color="primary" :block="isMobile" prepend-icon="ri-add-line" @click="$router.push('/products/add')">
                 Añadir Producto
               </VBtn>
             </VCol>

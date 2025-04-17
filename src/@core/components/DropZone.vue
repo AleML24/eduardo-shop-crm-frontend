@@ -122,9 +122,7 @@ useDropZone(dropZoneRef, onDrop)
             </h4>
             <span class="text-disabled">O</span>
 
-            <VBtn variant="outlined" v-if="!props.readonly">
-              Busque sus imágenes
-            </VBtn>
+            <VBtn variant="outlined" v-if="!props.readonly" text="Busque imágenes"></VBtn>  
           </div>
           <div v-else-if="imageStore.images.length === 0 && props.readonly"
             class="w-100 d-flex justify-center text-subtitle-1">No existen imagenes del
@@ -133,7 +131,8 @@ useDropZone(dropZoneRef, onDrop)
 
           <!-- Vista con imágenes cargadas -->
           <div v-else class="d-flex justify-center align-center gap-3 pa-8 border-dashed drop-zone flex-wrap">
-            <VRow class="align-center mb-4" style="position: absolute; right: 1rem; top: 1rem;" v-if="!props.readonly && imageStore.images.length > 0">
+            <VRow class="align-center mb-4" style="position: absolute; right: 1rem; top: 1rem;"
+              v-if="!props.readonly && imageStore.images.length > 0">
               <VCol cols="12" class="d-flex justify-end">
                 <VBtn size="large" color="primary" icon="ri-upload-2-line" variant="tonal"
                   @click="() => imageStore.images.length < 10 && open()">

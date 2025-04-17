@@ -80,18 +80,4 @@
         }
     };
 
-    export const deleteProduct = async (categoryId) => {
-        try {
-            const request = await $axios.delete(`/products/${categoryId}`);
-            return {
-                success: request?.data?.success,
-                message: request?.data?.message,
-                data: request?.data?.data
-            };
-        } catch (error) {
-            return {
-                success: false,
-                message: error?.response?.data?.message || "Error al eliminar el producto"
-            };
-        }
-    };
+ 
