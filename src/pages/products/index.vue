@@ -446,14 +446,13 @@
 
               <!-- Campo de cantidad con contenedor -->
               <div @click.stop>
-                <VTextField v-model="item.saled_modified" density="compact" hide-details style="width: 120px;" multiline
-                  auto-grow :rows="1" :max-rows="3" :rules="[rules.numeric, rules.required]" ref="saledField">
-                </VTextField>
+                <VTextField v-model="item.saled_modified" density="compact" style="width: 120px;" multiline
+                  auto-grow :rows="1" :max-rows="3" :rules="[...rules.required, ...rules.numeric]" ref="saledField" />
               </div>
 
               <!-- Botón incremento -->
               <VBtn icon="ri-add-line" size="x-small" density="compact" color="white"
-                @click="item.saled_modified = item.saled_modified + 1">
+                @click="item.saled_modified = item.saled_modified + 1" :disabled="item.saled_modified >= item.amount">
               </VBtn>
 
               <!-- Botones de confirmación -->
