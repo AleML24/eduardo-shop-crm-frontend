@@ -41,9 +41,9 @@ export const fetchCategories = async () => {
         const response = await $axios.get('/categories/get-names');
         return {
             success: true,
-            data: response.data.data.map(cat => ({ 
-                title: cat.name, 
-                value: cat.id 
+            data: response.data.data.map(cat => ({
+                title: cat.name,
+                value: cat.id
             }))
         };
     } catch (error) {
@@ -57,17 +57,17 @@ export const fetchCategories = async () => {
 export const fetchSubcategories = async (categoryId) => {
     try {
         const response = await $axios.get(`/subcategories/by-category/${categoryId}`);
-        
+
         return {
             success: true,
-            data: response.data.data.map(sub => ({ 
-                title: sub.name, 
-                value: sub.id 
+            data: response.data.data.map(sub => ({
+                title: sub.name,
+                value: sub.id
             }))
         };
     } catch (error) {
         let message = "Error al cargar subcategorías";
-        
+
         // Manejo específico de errores
         if (error.response) {
             if (error.response.status === 404) {
@@ -76,7 +76,7 @@ export const fetchSubcategories = async (categoryId) => {
                 message = error.response.data.message;
             }
         }
-        
+
         return {
             success: false,
             message: message,
@@ -88,10 +88,10 @@ export const fetchSubcategories = async (categoryId) => {
 export const fetchProductById = async (id) => {
     try {
         const response = await $axios.get(`/products/${id}`);
-        
+
         if (response.data?.success && response.data?.data) {
             const productData = response.data.data;
-            
+
             return {
                 success: true,
                 data: {
@@ -100,6 +100,7 @@ export const fetchProductById = async (id) => {
                     description: productData.description,
                     price: productData.price,
                     amount: productData.amount,
+                    saled: productData.saled,
                     state: productData.state,
                     dimension: productData.dimension,
                     weight: productData.weight,
@@ -133,11 +134,11 @@ export const updateProduct = async (productId, data) => {
 
     try {
         const request = await $axios.put(`/products/${productId}`, data);
-        
+
         success = request?.data?.success;
         responseData = request?.data?.data;
         message = request?.data?.message;
-        
+
         return { success, message, data: responseData };
 
     } catch (error) {
