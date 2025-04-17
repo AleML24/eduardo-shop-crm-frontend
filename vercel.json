@@ -1,9 +1,11 @@
 {
     "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
+        {"source": "/products","destination": "/products"},
+        {"source": "/products/add","destination": "/products/add"},
+        {"source": "/products/details/","destination": "/products/details/"},
+        {"source": "/categories","destination": "/categories"},
+        {"source": "/login","destination": "/login"},
+        {"source": "/(.*)","destination": "/"}
     ]
   }
   
