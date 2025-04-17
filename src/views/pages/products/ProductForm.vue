@@ -414,6 +414,9 @@ const rules = {
   ],
   string: [
     v => typeof v === 'string' && v.trim().length > 0 || 'El campo debe ser una cadena de texto no vacía',
+  ],
+  notMoreThanAmount: [
+    v => v <= formData.value.amount || 'La cantidad vendida no puede ser mayor a la cantidad total'
   ]
 
 };
@@ -493,9 +496,10 @@ const toggleSubcategoryDialog = async (success = null) => {
                   ]" />
                 </VCol>
                 <VCol cols="12" md="6">
-                  <VTextField v-model="formData.saled" label="Cantidad Vendida" :readonly="!canWrite" :rules="[
-                    ...rules.numeric,
-                  ]" />
+                  <VTextField v-model="formData.saled" label="Cantidad Vendida" :disabled="!formData.amount"
+                    :readonly="!canWrite" :rules="[
+                      ...rules.numeric, ...rules.notMoreThanAmount
+                    ]" />
                 </VCol>
 
                 <VCol cols="12" md="6">
