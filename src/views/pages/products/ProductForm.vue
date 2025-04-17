@@ -509,8 +509,7 @@ const toggleSubcategoryDialog = async (success = null) => {
                 </VCol>
 
                 <VCol cols="12" md="6">
-                  <VTextField v-model="formData.weight" label="Peso y Unidad de Medida" :readonly="!canWrite"
-                    :rules="[...rules.required]" />
+                  <VTextField v-model="formData.weight" label="Peso y Unidad de Medida" :readonly="!canWrite" />
                 </VCol>
 
                 <VCol cols="12" md="6">
