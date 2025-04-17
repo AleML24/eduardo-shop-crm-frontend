@@ -7,10 +7,10 @@
 
       <VCard flat class="login-card">
         <VCardText>
-          <h4 class="text-h4 mb-1">
+          <h4 class="text-h4 mb-1 text-center">
             Bienvenido a <span class="text-capitalize">{{ themeConfig.app.title }}!</span> 👋🏻
           </h4>
-          <p class="mb-0">Inicia sesión con tu cuenta</p>
+          <p class="mb-0 text-center">Inicia sesión con tu cuenta</p>
         </VCardText>
 
         <VCardText>
@@ -21,27 +21,16 @@
           <VForm @submit.prevent="handleLogin">
             <VRow>
               <VCol cols="12">
-                <VTextField
-                  v-model="form.name"
-                  autofocus
-                  label="Nombre de usuario"
-                  placeholder="Ingresa tu nombre de usuario"
-                  :rules="[v => !!v || 'El nombre es requerido']"
-                  required
-                />
+                <VTextField v-model="form.name" autofocus label="Nombre de usuario"
+                  placeholder="Ingresa tu nombre de usuario" :rules="[v => !!v || 'El nombre es requerido']" required />
               </VCol>
 
               <VCol cols="12">
-                <VTextField
-                  v-model="form.password"
-                  label="Contraseña"
-                  placeholder="············"
+                <VTextField v-model="form.password" label="Contraseña" placeholder="············"
                   :type="isPasswordVisible ? 'text' : 'password'"
                   :append-inner-icon="isPasswordVisible ? 'ri-eye-off-line' : 'ri-eye-line'"
                   @click:append-inner="isPasswordVisible = !isPasswordVisible"
-                  :rules="[v => !!v || 'La contraseña es requerida']"
-                  required
-                />
+                  :rules="[v => !!v || 'La contraseña es requerida']" required />
               </VCol>
 
               <VCol cols="12">
@@ -90,6 +79,12 @@ const authThemeImg = useGenerateImageVariant(
   true
 )
 
+definePage({
+  meta: {
+    layout: 'blank',
+    unauthenticatedOnly: true,
+  },
+})
 const authThemeMask = useGenerateImageVariant(authV2MaskLight, authV2MaskDark)
 
 const form = ref({
@@ -106,7 +101,7 @@ const handleLogin = async () => {
   try {
     loading.value = true
     errorMessage.value = ''
-    
+
     if (!form.value.name || !form.value.password) {
       throw new Error('Por favor completa todos los campos')
     }
@@ -127,7 +122,7 @@ const handleLogin = async () => {
         : 'US'
     }
 
-    window.location.href = router.currentRoute.value.query.returnUrl || '/products'
+    router.push('/products')
   } catch (error) {
     errorMessage.value = error.message
     console.error('Login error:', error)
@@ -172,6 +167,7 @@ onMounted(() => {
 
 .text-primary {
   text-decoration: none;
+
   &.router-link-active {
     color: inherit;
   }
