@@ -360,6 +360,15 @@
     "useId": true,
     "useModel": true,
     "useTemplateRef": true,
-    "$axios": true
+    "$axios": true,
+    "getUserProfile": true,
+    "isAuthenticated": true,
+    "login": true,
+    "logout": true,
+    "updateUserProfile": true,
+    "getStoredUser": true,
+    "loginWithProvider": true,
+    "getAuthToken": true,
+    "register": true
   }
 }

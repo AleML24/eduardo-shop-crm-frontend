@@ -1,3 +1,8 @@
+<script setup lang="ts">
+import UserProfile from '@/layouts/components/UserProfile.vue';
+import { login } from '@/utils/api';
+</script>
+
 <template>
   <div>
     <VCard
