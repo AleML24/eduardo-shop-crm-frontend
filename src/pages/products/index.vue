@@ -146,44 +146,44 @@
     }
   };
 
+  const saledForm = ref(null)
   // Confirmar cambio de cantidad vendida
   const confirmSaledChange = async (product) => {
-    try {
-      // Validar el campo saled_modified usando las reglas
-      const isValid = await ref('saledField').value.validate(); // Usamos el ref del VTextField para validar
-
-      if (!isValid) {
-        giveMeASnack({
-          message: 'Por favor, ingresa un valor válido para la cantidad',
-          color: 'error',
-          timeout: 3000,
-        });
-        return; // Si la validación falla, no proceder con la actualización
-      }
-
-      // Realizar la actualización si la validación es exitosa
-      const response = await updateProduct(product.id, { saled: product.saled_modified });
-
-      // Si la respuesta es exitosa, buscamos el producto en el arreglo
-      if (response && response.data) {
-        const productToUpdate = products.value.find(p => p.id === product.id);
-        if (productToUpdate) {
-          // Actualizar el amount del producto en el arreglo con el valor modificado
-          productToUpdate.saled = product.saled_modified;
-        }
-      }
-    } catch (error) {
-      // Si hay un error, revertir el cambio
-      const productToRevert = products.value.find(p => p.id === product.id);
-      if (productToRevert) {
-        productToRevert.saled_modified = product.saled; // Revertir al valor original
-      }
+    // 1) Validar Vuetify form
+    const isValid = await saledForm.value.validate()
+    if (!isValid) {
       giveMeASnack({
-        message: "Error al actualizar la cantidad",
+        message: 'Por favor, ingresa un valor válido para la cantidad',
+        color: 'error'
+      })
+      return
+    }
+
+    try {
+      // 2) Pasa el product.id real
+      const response = await updateProduct(product.id, { saled: product.saled_modified })
+      // 3) Si funciona, actualiza el array
+      if (response?.success) {
+        const p = products.value.find(p => p.id === product.id)
+        if (p) p.saled = product.saled_modified
+      } else {
+        giveMeASnack({
+          message: response.message,
+          color: 'error'
+        })
+      }
+    } catch (e) {
+      // 4) Si falla, reviertes
+      const p = products.value.find(p => p.id === product.id)
+      if (p) p.saled_modified = p.saled
+      console.log(e);
+      giveMeASnack({
+        message: e.message || 'Error al actualizar la cantidad',
         color: 'error'
       })
     }
-  };
+  }
+
 
 
 
@@ -438,33 +438,35 @@
 
           <!-- saled -->
           <template #item.saled="{ item }">
-            <div class="d-flex align-center gap-2" style="min-width: 50px;">
-              <!-- Botón decremento -->
-              <VBtn icon="ri-subtract-line" size="x-small" density="compact" color="white"
-                :disabled="item.saled_modified <= 0" @click="item.saled_modified = item.saled_modified - 1">
-              </VBtn>
-
-              <!-- Campo de cantidad con contenedor -->
-              <div @click.stop>
-                <VTextField v-model="item.saled_modified" density="compact" style="width: 120px;" multiline
-                  auto-grow :rows="1" :max-rows="3" :rules="[...rules.required, ...rules.numeric]" ref="saledField" />
-              </div>
-
-              <!-- Botón incremento -->
-              <VBtn icon="ri-add-line" size="x-small" density="compact" color="white"
-                @click="item.saled_modified = item.saled_modified + 1" :disabled="item.saled_modified >= item.amount">
-              </VBtn>
-
-              <!-- Botones de confirmación -->
-              <div v-if="item.saled != item.saled_modified" class="d-flex gap-2 ml-4">
-                <VBtn icon="ri-check-line" color="white" class="elevation-0" density="compact" size="x-small"
-                  @click="confirmSaledChange(item)">
+            <VForm ref="saledForm" @submit.prevent="confirmSaledChange(item)">
+              <div class="d-flex align-center gap-2" style="min-width: 50px;">
+                <!-- Botón decremento -->
+                <VBtn icon="ri-subtract-line" size="x-small" density="compact" color="white"
+                  :disabled="item.saled_modified <= 0" @click="item.saled_modified = item.saled_modified - 1">
                 </VBtn>
-                <VBtn icon="ri-close-line" color="white" class="elevation-0" density="compact" size="x-small"
-                  @click="cancelSaledChange(item)">
+
+                <!-- Campo de cantidad con contenedor -->
+                <div @click.stop>
+                  <VTextField v-model="item.saled_modified" density="compact" style="width: 120px;" multiline auto-grow
+                    :rows="1" :max-rows="3" :rules="[...rules.required, ...rules.numeric]" ref="saledField" />
+                </div>
+
+                <!-- Botón incremento -->
+                <VBtn icon="ri-add-line" size="x-small" density="compact" color="white"
+                  @click="item.saled_modified = item.saled_modified + 1" :disabled="item.saled_modified >= item.amount">
                 </VBtn>
+
+                <!-- Botones de confirmación -->
+                <div v-if="item.saled != item.saled_modified" class="d-flex gap-2 ml-4">
+                  <VBtn icon="ri-check-line" color="white" type="submit" class="elevation-0" density="compact"
+                    size="x-small">
+                  </VBtn>
+                  <VBtn icon="ri-close-line" color="white" class="elevation-0" density="compact" size="x-small"
+                    @click="cancelSaledChange(item)">
+                  </VBtn>
+                </div>
               </div>
-            </div>
+            </VForm>
           </template>
 
 
